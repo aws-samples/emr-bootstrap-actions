@@ -1,0 +1,721 @@
+# Copyright 2011-2013 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+
+#!/usr/bin/ruby
+
+require 'fileutils'
+require 'json'
+require 'emr/common.rb'
+require 'optparse'
+
+class String
+  def /(str)
+    File.join(self, str)
+  end
+end
+
+class Installer
+  CONFIG_HEADER = "<?xml version=\"1.0\"?>\n<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>"
+  @@JOBFLOW_INFO_FILE = "/mnt/var/lib/info/job-flow.json"
+
+  def to_json(filename)
+    JSON.parse(File.read(filename))
+  end
+
+  def error(msg)
+    log_msg(msg, "ERROR")
+  end
+
+  def warn(msg)
+    log_msg(msg, "WARN")
+  end
+
+  def info(msg)
+    log_msg(msg, "INFO")
+  end
+
+  def log_msg(msg, level)
+    puts(Time.now.to_s + " [#{level.upcase}] " + msg)
+  end
+
+  def glob(pat)
+    Dir.glob(pat).to_a
+  end
+
+  def link(from, to)
+    dest = to
+    if File.directory?(to) then
+      dest = to / File.basename(from)
+    end
+    if File.exist?(dest) then
+      run "rm -f #{dest}"
+    end
+    run "mkdir -p #{File.dirname(dest)}"
+    run "ln -s #{from} #{dest}"
+  end
+
+  def sudo_link(from, to)
+    dest = to
+    if File.directory?(to) then
+      dest = to / File.basename(from)
+    end
+    if File.exist?(dest) then
+      sudo "rm #{dest}"
+    end
+    sudo "mkdir -p #{File.dirname(dest)}"
+    sudo "ln -s #{from} #{dest}"
+  end
+
+  def sudo(cmd)
+    run("sudo #{cmd}")
+  end
+
+  def cp(src, dst)
+    info "cp #{src} #{dst}"
+    FileUtils.cp(src, dst)
+  end
+
+  def mkdir(dir)
+    info "mkdir #{dir}"
+#    FileUtils.mkdir_p(dir)
+    run "mkdir -p #{dir}"
+  end
+
+  def run(cmd)
+    info "run #{cmd}"
+    if ! system(cmd) then
+      info "Command failed."
+      raise "Command failed: #{cmd}"
+    end
+  end
+
+  def conf_to_map(conf)
+    map = {}
+    for x in conf do
+      map[x[:name]] = x[:value]
+    end
+    return map
+  end
+
+  def substitute_in(row, fields, instance_role)
+    if row.size != fields.size then
+      raise RuntimeError, "Incompatible row and field list row=#{row}, fields=#{fields}"
+    end
+    result = []
+    for index in 0 ... row.size do
+      if fields[index][:roles].include?(instance_role) then
+        result << fields[index][:field].sub('{VAR}', row[index])
+      end
+    end
+    return result
+  end
+
+  def overwrite_conf_file(path, conf_list, filename)
+    file = File.join(path, filename)
+    for arg in conf_list
+      puts "Processing default file #{file} with overwrite #{arg}"
+      key   = arg.split('=', 2)[0]
+      value = arg.split('=', 2)[1]
+      overwrite = [{:name => key, :value => value }]
+      default = parse_config_file(file)
+      merge_config(default,overwrite)
+      dump_config_file(file + ".new", default)
+      if File.exist?(file) then
+        File.rename(file, file + ".old")
+      end
+      File.rename(file + ".new", file)
+      puts "Saved #{file} with overwrites. Original saved to #{file}.old"
+    end
+  end
+
+  def overwrite_env_file(path, heap_list, filename)
+    file = File.join(path, filename)
+    if File.exist?(file) then
+      File.delete(file)
+    end
+    open(file, 'w') do |f|
+      f.puts "#!/bin/bash"
+      for arg in heap_list
+        f.puts arg
+      end
+    end
+  end
+
+  def parse_config_file(config_file_path)
+    ret = []
+    if File.exist?(config_file_path) then
+      doc = open(config_file_path) { |f| Hpricot(f) }
+      (doc/"configuration"/"property").each do |property|
+        val = {:name => (property/"name").inner_html, :value => (property/"value").inner_html }
+        if (property/"final").inner_html != "" then
+          val[:final] =  (property/"final").inner_html
+        end
+        ret << val
+      end
+    else
+      puts "#{config_file_path} does not exist, assuming empty configuration"
+    end
+    return ret
+  end
+
+  def dump_config_file(file_name, config)
+    open(file_name, 'w') do |f|
+      f.puts CONFIG_HEADER
+      f.puts '<configuration>'
+      for entry in config
+        f.print "  <property><name>#{entry[:name]}</name><value>#{entry[:value]}</value>"
+        if entry[:final] then
+          f.print "<final>#{entry[:final]}</final>"
+        end
+        f.puts '</property>'
+      end
+      f.puts '</configuration>'
+    end
+  end
+
+  def merge_config(default, overwrite)
+    for entry in overwrite
+      cells = default.select { |x| x[:name] == entry[:name]}
+      if cells.size == 0 then
+        puts "'#{entry[:name]}': default does not have key, appending value '#{entry[:value]}'"
+        default << entry
+      elsif cells.size == 1 then
+        puts "'#{entry[:name]}': new value '#{entry[:value]}' overwriting '#{cells[0][:value]}'"
+        cells[0].replace(entry)
+      else
+        raise "'#{entry[:name]}': default has #{cells.size} keys"
+      end
+    end
+  end
+
+  def get_latest(version_list)
+    last = nil
+    version_list.each {|version|
+      if last.nil? || higher(version, last) then
+        last = version
+      end
+    }
+    last
+  end
+
+  def higher(a, b)
+    t1 = a.split('.').map{|s|s.to_i}
+    t2 = b.split('.').map{|s|s.to_i}
+    (t1 <=> t2) > 0
+  end
+
+  def update_service_nanny
+    sudo "/etc/init.d/service-nanny reload"
+  end
+
+  def update_log_pusher
+    parsed = to_json("/etc/instance-controller/logs.json")
+    hbase_logs = Hash["fileGlob", "/mnt/var/log/hbase/(.*.log.*)", "s3Path", "node/$instance-id/daemons/$0", "delayPush", true]
+    parsed["logFileTypes"][1]["logFilePatterns"].push(hbase_logs)
+    run("sudo mv /etc/instance-controller/logs.json /etc/instance-controller/logs.json.bak")
+    File.open("/tmp/logs.json" , "w") do |file|
+      file.puts(JSON.generate(parsed))
+    end
+    run "sudo mv /tmp/logs.json /etc/instance-controller/"
+  end
+
+  def allow_inf_memory_overcommit
+    # make sure /etc/sysctl.d is created
+    sudo "mkdir -p /etc/sysctl.d"
+
+    fname = "999_inf_overcommit.conf"
+    File.open("/tmp/#{fname}", "w") do |f|
+      f.puts "vm.overcommit_memory = 1"
+    end
+    run "sudo mv /tmp/#{fname} /etc/sysctl.d/"
+    run "sudo sysctl -p /etc/sysctl.d/#{fname}"
+  end
+
+  def self.do_install
+    if ! File.exist?(@@JOBFLOW_INFO_FILE) then
+        raise "Missing instance file #{@@JOBFLOW_INFO_FILE}"
+      else
+        json = JSON.parse(File.read(@@JOBFLOW_INFO_FILE))
+        if json['hadoopVersion'] then
+          hadoop_version = json['hadoopVersion']
+          puts "hadoop version #{hadoop_version}"
+          if hadoop_version.start_with?("2.") then
+            hadoop2_hbase_installer = Hadoop2HBaseInstaller.new
+            hadoop2_hbase_installer.check_and_install
+          else
+            hadoop1_hbase_installer = Hadoop1HBaseInstaller.new
+            hadoop1_config_installer = Hadoop1ConfigInstaller.new
+            hadoop1_hbase_installer.install
+            hadoop1_config_installer.install
+          end
+        else
+          raise "Missing hadoopVersion entry in #{@@JOBFLOW_INFO_FILE}"
+        end
+      end
+  end
+end
+
+class Hadoop1ConfigInstaller < Installer
+
+  CONFIG_HEADER = "<?xml version=\"1.0\"?>\n<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>"
+  HADOOP_CONF_DIR = '/home/hadoop/conf'
+
+  def install
+    jobflow_info = Emr::JsonInfoFile.new("job-flow")
+    instance_info = Emr::JsonInfoFile.new("instance")
+
+    if instance_info['isMaster'].to_s == 'true'  then
+      instance_type = jobflow_info["masterInstanceType"]
+      instance_role = :master
+    else
+      instance_type = jobflow_info["slaveInstanceType"]
+      instance_role = :slave
+    end
+
+
+    # hadoop config
+    mapred_conf_fields = [
+                   { :field => "mapred.child.java.opts={VAR}",
+                     :roles => [:slave]
+                   },
+                   { :field => "mapred.tasktracker.map.tasks.maximum={VAR}",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "mapred.tasktracker.reduce.tasks.maximum={VAR}",
+                     :roles => [:master, :slave]
+                   }
+                  ]
+    mapred_configs = {
+      "m1.large"    => ["-Xmx1024m", "1",  "1"],
+      "m1.xlarge"   => ["-Xmx1024m", "1",  "1"],
+      "m2.xlarge"   => ["-Xmx1024m", "1",  "1"],
+      "m2.2xlarge"  => ["-Xmx1096m", "1",  "1"],
+      "m2.4xlarge"  => ["-Xmx1096m", "1",  "1"],
+      "c1.xlarge"   => ["-Xmx1096m", "1",  "1"],
+      "cc1.4xlarge" => ["-Xmx1024m", "1",  "1"],
+      "cc2.8xlarge" => ["-Xmx1096m", "1",  "1"],
+      "hs1.8xlarge" => ["-Xmx1096m", "1",  "1"],
+      "hi1.4xlarge" =>  ["-Xmx1096m", "1",  "1"]
+    }
+    conf_list = substitute_in(mapred_configs[instance_type], mapred_conf_fields, instance_role)
+    overwrite_conf_file(HADOOP_CONF_DIR, conf_list, "mapred-site.xml")
+
+    core_conf_fields = [
+                   { :field => "dfs.support.append=true",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.zookeeper.quorum=#{`hostname`.chomp}",
+                     :roles => [:master]
+                   },
+                   { :field => "hbase.zookeeper.quorum=#{jobflow_info['masterPrivateDnsName']}",
+                     :roles => [:slave]
+                   }
+                  ]
+    core_configs = {
+      "m1.large"    => ["", "", ""],
+      "m1.xlarge"   => ["", "", ""],
+      "m2.xlarge"   => ["", "", ""],
+      "m2.2xlarge"  => ["", "", ""],
+      "m2.4xlarge"  => ["", "", ""],
+      "c1.xlarge"   => ["", "", ""],
+      "cc1.4xlarge" => ["", "", ""],
+      "cc2.8xlarge" => ["", "", ""],
+      "hs1.8xlarge" => ["", "",  ""],
+      "hi1.4xlarge" =>  ["", "",  ""]
+    }
+    conf_list = substitute_in(core_configs[instance_type], core_conf_fields, instance_role)
+    overwrite_conf_file(HADOOP_CONF_DIR, conf_list, "core-site.xml")
+    overwrite_conf_file(HADOOP_CONF_DIR, conf_list, "hdfs-site.xml")
+
+
+    # hadoop heap
+    heap_fields = [
+                   { :field => "HADOOP_NAMENODE_HEAPSIZE={VAR}",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "HADOOP_JOBTRACKER_HEAPSIZE={VAR}",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "HADOOP_TASKTRACKER_HEAPSIZE={VAR}",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "HADOOP_DATANODE_HEAPSIZE={VAR}",
+                     :roles => [:master, :slave]
+                   }
+                  ]
+    heaps = {
+      "m1.large"   =>   ["1024",  "1024",  "1024", "1024"],  # 7.5
+      "m1.xlarge"   =>  ["2048",  "2048",  "1024", "1024"],  # 15
+      "m2.xlarge"   =>  ["2048",  "2048",  "1024", "1024"],  #
+      "m2.2xlarge"  =>  ["2048",  "8192",  "1024", "1024"],  #
+      "m2.4xlarge"  =>  ["8192",  "5120",  "1024", "1024"],  #
+      "c1.xlarge"   =>  ["1024",  "1024",  "1024", "1024"],  # 7.5
+      "cc1.4xlarge" =>  ["8192",  "5120",  "1024", "1024"],  #
+      "cc2.8xlarge" =>  ["8192",  "5120",  "1024", "1024"],  #
+      "hs1.8xlarge" =>  ["8192",  "5120",  "1024", "1024"],  #
+      "hi1.4xlarge" =>  ["8192",  "5120",  "1024", "1024"]   #
+    }
+    heap_list = substitute_in(heaps[instance_type], heap_fields, instance_role)
+    overwrite_env_file(HADOOP_CONF_DIR, heap_list,  "hadoop-user-env.sh")
+
+
+    # hbase heap
+    hbase_heap_fields = [
+                         { :field => "HBASE_ZOOKEEPER_OPTS=-Xmx{VAR}m",
+                           :roles => [:master, :slave]
+                         },
+                         { :field => "HBASE_MASTER_OPTS=-Xmx{VAR}m",
+                           :roles => [:master, :slave]
+                         },
+                         { :field => "HBASE_REGIONSERVER_OPTS=-Xmx{VAR}m",
+                           :roles => [:master, :slave]
+                         },
+                        ]
+    hbase_heaps = {
+      "m1.large"     => ["512",   "512",  "5120"  ],  # 7.5
+      "m1.xlarge"    => ["1024",  "1024", "12288" ],  # 15
+      "m2.xlarge"    => ["1024",  "1024", "12288" ],  #
+      "m2.2xlarge"   => ["1024",  "1024", "30720" ],  # 34
+      "m2.4xlarge"   => ["1024",  "1024", "61440" ],  # 68
+      "c1.xlarge"    => ["512",   "512",  "5120"  ],  # 7.5
+      "cc1.4xlarge"  => ["1024",  "1024", "20480" ],  # 23
+      "cc2.8xlarge"  => ["1024",  "1024", "53248" ],  # 60
+      "hs1.8xlarge" =>  ["1024",  "1024", "111616"],   # 117
+      "hi1.4xlarge" =>  ["1024",  "1024", "53248"]    #60.5
+    }
+    hbase_heap_list = substitute_in(hbase_heaps[instance_type], hbase_heap_fields, instance_role)
+    overwrite_env_file(HADOOP_CONF_DIR, hbase_heap_list,  "hbase-user-env.sh")
+
+
+    # hbase site config
+    hadoop_core_site_config = conf_to_map(parse_config_file("/home/hadoop/conf/core-site.xml"))
+    hbase_conf_fields = [
+                   { :field => "fs.hdfs.impl=emr.hbase.fs.BlockableFileSystem",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.regionserver.handler.count={VAR}",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.zookeeper.quorum=#{`hostname`.chomp}",
+                     :roles => [:master]
+                   },
+                   { :field => "hbase.zookeeper.quorum=#{jobflow_info['masterPrivateDnsName']}",
+                     :roles => [:slave]
+                   },
+                   { :field => "hbase.rootdir=#{hadoop_core_site_config['fs.default.name'] + "/hbase"}",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.cluster.distributed=true",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.tmp.dir=/mnt/var/lib/hbase/tmp-data",
+                     :roles => [:master, :slave]
+                   }
+    ]
+    hbase_configs = {
+      "m1.large"   =>  ["", "100",  "", "", "", "", ""],
+      "m1.xlarge"   => ["", "100",  "", "", "", "", ""],
+      "m2.xlarge"   => ["", "100",  "", "", "", "", ""],
+      "m2.2xlarge"  => ["", "100",  "", "", "", "", ""],
+      "c1.xlarge"   => ["", "100",  "", "", "", "", ""],
+      "m2.4xlarge"  => ["", "100",  "", "", "", "", ""],
+      "cc1.4xlarge" => ["", "100",  "", "", "", "", ""],
+      "cc2.8xlarge" => ["", "100",  "", "", "", "", ""],
+      "hs1.8xlarge" => ["", "100",  "", "", "", "", ""],
+      "hi1.4xlarge" => ["", "100",  "", "", "", "", ""]
+    }
+    hbase_conf_list = substitute_in(hbase_configs[instance_type], hbase_conf_fields, instance_role)
+    overwrite_conf_file(HADOOP_CONF_DIR, hbase_conf_list, "hbase-site.xml")
+  end
+
+end
+
+class Hadoop1HBaseInstaller < Installer
+
+  attr_accessor :hbase_pkg, :lib_dir
+
+  def install
+    mkdir "/mnt/var/log/hbase/"
+    mkdir "/mnt/var/run/hbase/"
+    mkdir "/mnt/var/lib/hbase/tmp-data"
+
+    for path in glob("/home/hadoop/.versions/hbase0.92/bin/*") do
+      link path, "/home/hadoop/bin"
+    end
+
+    for path in glob("/home/hadoop/.versions/hbase0.92/lib/*") do
+      link path, "/home/hadoop/lib"
+    end
+
+    for path in glob("/home/hadoop/*.jar") do
+      link path, "/home/hadoop/lib"
+    end
+
+    for path in glob("/home/hadoop/.versions/hbase0.92/etc/**/*") do
+      if File.file?(path) then
+        sudo_link path, path.sub("/home/hadoop/.versions/hbase0.92", "")
+      end
+    end
+
+    link "/home/hadoop/.versions/hbase0.92/etc/hbase/hbase-env.sh", "/home/hadoop/conf/"
+
+    link "/home/hadoop/lib/hbase-0.92.0.jar", "/home/hadoop/lib/hbase.jar"
+
+    for path in glob("/home/hadoop/.versions/hbase0.92/src/**/*") do
+      if File.file?(path) then
+        link path, path.sub("/home/hadoop/.versions/hbase0.92/", "/home/hadoop/")
+      end
+    end
+
+    tmp_name = "hbase.tmp"
+    run "echo 1 > /tmp/#{tmp_name}"
+    run "sudo cp /tmp/#{tmp_name} /mnt/var/run/hbase/run-hbase-regionserver"
+    run "sudo cp /tmp/#{tmp_name} /mnt/var/run/hbase/run-zookeeper"
+    run "rm /tmp/hbase.tmp"
+    allow_inf_memory_overcommit
+    update_log_pusher
+    update_service_nanny
+  end
+end
+
+
+
+class Hadoop2HBaseInstaller < Installer
+  attr_accessor :hbase_pkg, :lib_dir
+  attr_accessor :hbase_version
+
+  HADOOP_CONF_DIR = '/home/hadoop/conf'
+  HBASE_CONF_DIR = '/home/hadoop/hbase/conf'
+
+  def update_conf
+    jobflow_info = Emr::JsonInfoFile.new("job-flow")
+    instance_info = Emr::JsonInfoFile.new("instance")
+
+    if instance_info['isMaster'].to_s == 'true' then
+      instance_type = jobflow_info["masterInstanceType"]
+      instance_role = :master
+    else
+      instance_type = jobflow_info["slaveInstanceType"]
+      instance_role = :slave
+    end
+
+    # hadoop config
+    mapred_conf_fields = [
+                   { :field => "mapred.child.java.opts={VAR}",
+                     :roles => [:slave]
+                   }
+                  ]
+    mapred_configs = {
+      "m1.large"    => ["-Xmx1024m"],
+      "m1.xlarge"   => ["-Xmx1024m"],
+      "m2.xlarge"   => ["-Xmx1024m"],
+      "m2.2xlarge"  => ["-Xmx1096m"],
+      "m2.4xlarge"  => ["-Xmx1096m"],
+      "c1.xlarge"   => ["-Xmx1096m"],
+      "cc1.4xlarge" => ["-Xmx1024m"],
+      "cc2.8xlarge" => ["-Xmx1096m"],
+      "hs1.8xlarge" => ["-Xmx1096m"],
+      "hi1.4xlarge" => ["-Xmx1096m"]
+    }
+    conf_list = substitute_in(mapred_configs[instance_type], mapred_conf_fields, instance_role)
+    overwrite_conf_file(HADOOP_CONF_DIR, conf_list, "mapred-site.xml")
+
+    core_conf_fields = [
+                   { :field => "dfs.support.append=true",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.zookeeper.quorum=#{`hostname`.chomp}",
+                     :roles => [:master]
+                   },
+                   { :field => "hbase.zookeeper.quorum=#{jobflow_info['masterPrivateDnsName']}",
+                     :roles => [:slave]
+                   }
+                  ]
+    core_configs = {
+      "m1.large"    => ["", "", ""],
+      "m1.xlarge"   => ["", "", ""],
+      "m2.xlarge"   => ["", "", ""],
+      "m2.2xlarge"  => ["", "", ""],
+      "m2.4xlarge"  => ["", "", ""],
+      "c1.xlarge"   => ["", "", ""],
+      "cc1.4xlarge" => ["", "", ""],
+      "cc2.8xlarge" => ["", "", ""],
+      "hs1.8xlarge" => ["", "",  ""],
+      "hi1.4xlarge" =>  ["", "",  ""]
+    }
+    conf_list = substitute_in(core_configs[instance_type], core_conf_fields, instance_role)
+    overwrite_conf_file(HADOOP_CONF_DIR, conf_list, "core-site.xml")
+    overwrite_conf_file(HADOOP_CONF_DIR, conf_list, "hdfs-site.xml")
+
+
+    # hadoop heap
+    heap_fields = [
+                   { :field => "HADOOP_NAMENODE_HEAPSIZE={VAR}",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "HADOOP_DATANODE_HEAPSIZE={VAR}",
+                     :roles => [:master, :slave]
+                   }
+                  ]
+    heaps = {
+      "m1.large"   =>   ["1024", "1024"],  # 7.5
+      "m1.xlarge"   =>  ["2048", "1024"],  # 15
+      "m2.xlarge"   =>  ["2048", "1024"],  #
+      "m2.2xlarge"  =>  ["2048", "1024"],  #
+      "m2.4xlarge"  =>  ["8192", "1024"],  #
+      "c1.xlarge"   =>  ["1024", "1024"],  # 7.5
+      "cc1.4xlarge" =>  ["8192", "1024"],  #
+      "cc2.8xlarge" =>  ["8192", "1024"],  #
+      "hs1.8xlarge" =>  ["8192", "1024"],  #
+      "hi1.4xlarge" =>  ["8192", "1024"]   #
+    }
+    heap_list = substitute_in(heaps[instance_type], heap_fields, instance_role)
+    overwrite_env_file(HADOOP_CONF_DIR, heap_list,  "hadoop-user-env.sh")
+
+    # hbase heap
+    hbase_heap_fields = [
+                         { :field => "HBASE_ZOOKEEPER_OPTS=-Xmx{VAR}m",
+                           :roles => [:master, :slave]
+                         },
+                         { :field => "HBASE_MASTER_OPTS=-Xmx{VAR}m",
+                           :roles => [:master, :slave]
+                         },
+                         { :field => "HBASE_REGIONSERVER_OPTS=-Xmx{VAR}m",
+                           :roles => [:master, :slave]
+                         },
+                        ]
+    hbase_heaps = {
+      "m1.large"     => ["512",   "512",  "5120"  ],  # 7.5
+      "m1.xlarge"    => ["1024",  "1024", "12288" ],  # 15
+      "m2.xlarge"    => ["1024",  "1024", "12288" ],  #
+      "m2.2xlarge"   => ["1024",  "1024", "30720" ],  # 34
+      "m2.4xlarge"   => ["1024",  "1024", "61440" ],  # 68
+      "c1.xlarge"    => ["512",   "512",  "5120"  ],  # 7.5
+      "cc1.4xlarge"  => ["1024",  "1024", "20480" ],  # 23
+      "cc2.8xlarge"  => ["1024",  "1024", "53248" ],  # 60
+      "hs1.8xlarge" =>  ["1024",  "1024", "111616"],   # 117
+      "hi1.4xlarge" =>  ["1024",  "1024", "53248"]    #60.5
+    }
+    hbase_heap_list = substitute_in(hbase_heaps[instance_type], hbase_heap_fields, instance_role)
+    overwrite_env_file(HBASE_CONF_DIR, hbase_heap_list,  "hbase-user-env.sh")
+
+
+    # hbase site config
+    hadoop_core_site_config = conf_to_map(parse_config_file("/home/hadoop/conf/core-site.xml"))
+    hbase_conf_fields = [
+                   { :field => "fs.hdfs.impl=emr.hbase.fs.BlockableFileSystem",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.regionserver.handler.count={VAR}",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.zookeeper.quorum=#{`hostname`.chomp}",
+                     :roles => [:master]
+                   },
+                   { :field => "hbase.zookeeper.quorum=#{jobflow_info['masterPrivateDnsName']}",
+                     :roles => [:slave]
+                   },
+                   { :field => "hbase.rootdir=#{hadoop_core_site_config['fs.default.name'] + "/hbase"}",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.cluster.distributed=true",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.tmp.dir=/mnt/var/lib/hbase/tmp-data",
+                     :roles => [:master, :slave]
+                   },
+                   { :field => "hbase.master.wait.for.log.splitting=true",
+                     :roles => [:master, :slave]
+                   }
+    ]
+    hbase_configs = {
+      "m1.large"   =>  ["", "100",  "", "", "", "", "", ""],
+      "m1.xlarge"   => ["", "100",  "", "", "", "", "", ""],
+      "m2.xlarge"   => ["", "100",  "", "", "", "", "", ""],
+      "m2.2xlarge"  => ["", "100",  "", "", "", "", "", ""],
+      "c1.xlarge"   => ["", "100",  "", "", "", "", "", ""],
+      "m2.4xlarge"  => ["", "100",  "", "", "", "", "", ""],
+      "cc1.4xlarge" => ["", "100",  "", "", "", "", "", ""],
+      "cc2.8xlarge" => ["", "100",  "", "", "", "", "", ""],
+      "hs1.8xlarge" => ["", "100",  "", "", "", "", "", ""],
+      "hi1.4xlarge" => ["", "100",  "", "", "", "", "", ""]
+    }
+    hbase_conf_list = substitute_in(hbase_configs[instance_type], hbase_conf_fields, instance_role)
+    overwrite_conf_file(HBASE_CONF_DIR, hbase_conf_list, "hbase-site.xml")
+  end
+
+  def check_and_install
+    if File.exist?("/home/hadoop/hbase") then
+      puts "HBase has already been installed, skip HBase installation"
+    else
+      prefix = "hbase-"
+      versions = Dir.glob("/home/hadoop/.versions/#{prefix}*").collect{|x| x[x.index(prefix) + prefix.length, x.length]}
+      if versions.nil?
+        raise "Cannot find HBase under /home/hadoop/.versions"
+      else
+        latest = get_latest(versions)
+        puts "HBase is not installed, installing HBase-#{latest}..."
+        @hbase_version = latest
+        install
+      end
+    end
+  end
+
+  def install
+    mkdir "/mnt/var/log/hbase/"
+    mkdir "/mnt/var/run/hbase/"
+    mkdir "/mnt/var/lib/hbase/tmp-data"
+
+    link "/home/hadoop/.versions/hbase-#{@hbase_version}", "/home/hadoop/hbase"
+
+    link "/home/hadoop/.versions/hbase-#{@hbase_version}/hbase-#{@hbase_version}.jar", "/home/hadoop/lib"
+    link "/home/hadoop/.versions/hbase-#{@hbase_version}/hbase-#{@hbase_version}.jar", "/home/hadoop/lib/hbase.jar"
+
+    link "/home/hadoop/.versions/hbase-#{@hbase_version}/lib/EmrS3DistCp-1.0.jar", "/home/hadoop/lib"
+    link "/home/hadoop/.versions/hbase-#{@hbase_version}/lib/EmrS3DistCp-1.0.jar", "/home/hadoop/share/hadoop/common/lib/"
+
+    for path in glob("/home/hadoop/.versions/hbase-#{@hbase_version}/etc/**/*") do
+      if File.file?(path) then
+        sudo_link path, path.sub("/home/hadoop/.versions/hbase-#{@hbase_version}", "")
+      end
+    end
+
+    update_conf
+
+    update_bash_profile
+
+    tmp_name = "hbase.tmp"
+    run "echo 1 > /tmp/#{tmp_name}"
+    run "sudo cp /tmp/#{tmp_name} /mnt/var/run/hbase/run-hbase-regionserver"
+    run "sudo cp /tmp/#{tmp_name} /mnt/var/run/hbase/run-zookeeper"
+    run "rm /tmp/hbase.tmp"
+    allow_inf_memory_overcommit
+    update_log_pusher
+    update_service_nanny
+  end
+
+
+  def update_bash_profile
+    open('/home/hadoop/.bash_profile', 'a') { |f|
+      f.puts '# HBase'
+      f.puts 'export HBASE_HOME=$HADOOP_HOME/hbase'
+      f.puts 'export HBASE_CONF_DIR=$HBASE_HOME/conf'
+      f.puts 'export PATH=$HBASE_HOME/bin:$PATH'
+    }
+    sudo('chown hadoop.hadoop /home/hadoop/.bash_profile')
+    sudo('chown hadoop.hadoop /home/hadoop/.bashrc')
+  end
+
+end
+
+Installer.do_install

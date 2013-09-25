@@ -1,0 +1,242 @@
+# Copyright 2011-2013 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+
+#!/usr/bin/ruby
+
+if(!File.exists?("/tmp/ganglia-installed")) 
+
+#!/usr/bin/ruby
+
+  require 'fileutils'
+  require 'open-uri'
+  require 'json'
+  require 'socket'
+  require 'emr/common'
+
+  BUCKET_NAME = "elasticmapreduce"
+  BA_VERSION = "2.0"
+
+  #Setup environment for the various steps required in this installation
+  $jobflow_info = Emr::JsonInfoFile.new("job-flow")
+  $instance_info = Emr::JsonInfoFile.new("instance")
+  $log = Emr::Logger.new
+  $e = Emr::Executor.new($log)
+  $ip = IPSocket.getaddress(Socket.gethostname)
+  
+  $master_dns = $jobflow_info['masterPrivateDnsName']
+  
+  # Set up the ganglia source files
+  GANGLIA = "ganglia-3.2.0"
+  GANGLIA_HOME = "~/source/#{GANGLIA}"
+
+  def run(cmd)
+    puts "Running: #{cmd}"
+    if ! system(cmd) then
+      raise RuntimeError, "Error running #{cmd}"
+    end
+  end
+  
+  def download_and_unzip_ganglia
+    run("mkdir -p ~/source")
+    run("cd ~/source && wget http://#{BUCKET_NAME}.s3.amazonaws.com/bootstrap-actions/ganglia/2.0/#{GANGLIA}.tar.gz")
+    run("cd ~/source && tar xvfz #{GANGLIA}.tar.gz")
+  end
+  
+  def update_hadoop_metrics
+    if $instance_info['isMaster'].to_s == 'false' then
+      hadoop_config = DATA.read.gsub(/@GANGLIA@/, $master_dns)
+    else
+      hadoop_config = DATA.read.gsub(/@GANGLIA@/, $ip)
+    end
+    metrics_file = "/home/hadoop/conf/hadoop-metrics2.properties"
+    run("sudo mv #{metrics_file} #{metrics_file}.bak")
+    file = File.open(metrics_file, 'w')
+    file.puts hadoop_config
+    file.close
+  end
+  
+  def install_php
+  php = <<-PHPCONF
+    # PHP Configuration for Apache
+    #
+    # Load the apache module
+    #
+    LoadModule php5_module modules/libphp5.so
+    #
+    # Cause the PHP interpreter handle files with a .php extension.
+    #
+    <Files *.php>
+    SetOutputFilter PHP
+    SetInputFilter PHP
+    LimitRequestBody 9524288
+    </Files>
+    AddType application/x-httpd-php .php
+    AddType application/x-httpd-php-source .phps
+    #
+    # Add index.php to the list of files that will be served as directory
+    # indexes.
+    #
+    DirectoryIndex index.php
+  PHPCONF
+    run("touch /home/hadoop/php.conf")
+    file = File.open('/home/hadoop/php.conf', 'w')
+    file.puts php
+    file.close
+    $e.run("sudo mv /home/hadoop/php.conf /etc/apache2/conf.d/php.conf")
+    $e.run("sudo /etc/init.d/apache2 stop")
+    $e.run("sudo /etc/init.d/apache2 start")
+  end
+  
+  def install_web_frontend
+    run("sudo apt-get --force-yes install -t squeeze rrdtool -y")
+    run("sudo apt-get --force-yes install -t squeeze apache2 php5-mysql libapache2-mod-php5 php-pear -y")
+    run("sudo cp -r #{GANGLIA_HOME}/web /var/www && sudo mv /var/www/web /var/www/ganglia")
+    install_php
+  end
+  
+  def configure_gmond
+    run("sudo ldconfig")
+    run("sudo gmond --default_config > ~/gmond.conf")
+    run("sudo mv ~/gmond.conf /etc/gmond.conf")
+    run("sudo perl -pi -e 's/name = \"unspecified\"/name = \"AMZN-EMR\"/g' /etc/gmond.conf")
+    run("sudo perl -pi -e 's/owner = \"unspecified\"/name = \"AMZN-EMR\"/g' /etc/gmond.conf")
+    run("sudo perl -pi -e 's/send_metadata_interval = 0/send_metadata_interval = 10/g' /etc/gmond.conf")
+
+    if $instance_info['isMaster'].to_s == 'false' then
+      command = <<-COMMAND
+      sudo sed -i -e "s|\\( *mcast_join *=.*\\)|#\\1|" \
+             -e "s|\\( *bind *=.*\\)|#\\1|" \
+             -e "s|\\( *location *=.*\\)|  location = \"master-node\"|" \
+             -e "s|\\(udp_send_channel {\\)|\\1\\n  host=#{$master_dns}|" \
+             /etc/gmond.conf
+      COMMAND
+      $e.run(command)
+    else
+      command = <<-COMMAND
+      sudo sed -i -e "s|\\( *mcast_join *=.*\\)|#\\1|"  \
+             -e "s|\\( *bind *=.*\\)|#\\1|" \
+             -e "s|\\(udp_send_channel {\\)|\\1\\n  host=#{$ip}|" \
+             /etc/gmond.conf
+      COMMAND
+      $e.run(command)
+    end
+    $e.run("sudo gmond")
+  end
+  
+  def configure_gmetad
+    ganglia_log_dir = "/mnt/var/log/ganglia/rrds/"
+    ganglia_templates_dir = "/mnt/var/log/ganglia/dwoo/"
+    run("sudo cp #{GANGLIA_HOME}/gmetad/gmetad.conf /etc/")
+    run("sudo mkdir -p #{ganglia_log_dir}")
+    run("sudo chown -R nobody #{ganglia_log_dir}")
+    run("sudo sed -i -e 's$# rrd_rootdir .*$rrd_rootdir #{ganglia_log_dir}$g' /etc/gmetad.conf")
+    run("sudo mkdir -p #{ganglia_templates_dir}")
+    run("sudo chown -R nobody #{ganglia_templates_dir}")
+    run("sudo chmod -R 777 #{ganglia_templates_dir}")
+  
+    #Setup pushing rrds to S3
+    parsed = JSON.parse(File.read("/etc/instance-controller/logs.json"))
+    newEntry = Hash["fileGlob", "/mnt/var/log/ganglia/rrds/AMZN-EMR/(.*)/(.*)", "s3Path", "node/$instance-id/ganglia/$0/$1", "delayPush", false]
+    parsed["logFileTypes"][0]["logFilePatterns"].push(newEntry)
+    run("sudo mv /etc/instance-controller/logs.json /etc/instance-controller/logs.json.bak")
+    File.open("/tmp/logs.json" , "w") do |fil|
+    fil.puts(JSON.generate(parsed))
+    end
+    $e.run("sudo mv /tmp/logs.json /etc/instance-controller/")
+     
+  end
+  
+  def configure_confphp
+    $log.log("Changing conf.php")
+    gmetad_root = "/mnt/var/log/ganglia"
+    command = <<-COMMAND
+    sudo sed -i -e 's$gmetad_root = .*$gmetad_root = "#{gmetad_root}" \;$g' /var/www/ganglia/conf.php
+    COMMAND
+    run(command)
+  end
+
+  def spawn_child(cmd)
+    child_process = fork do
+      exec(cmd)
+    end
+    Process.detach(child_process)
+  end
+
+  def run_nanny
+    run("wget http://#{BUCKET_NAME}.s3.amazonaws.com/bootstrap-actions/ganglia/#{BA_VERSION}/ganglia-nanny")
+    run("sudo chmod 755 ganglia-nanny")
+    run("sudo mkdir -p /mnt/var/log/ganglia/")
+    run("sudo chmod -R 777 /mnt/var/log/ganglia/")
+
+    spawn_child "sudo ./ganglia-nanny >> /mnt/var/log/ganglia/ganglia-nanny.log < /dev/null 2>&1 &"
+  end
+  
+  run("sudo apt-get update")
+  
+  update_hadoop_metrics
+  
+  $arch=$e.run("uname -m").chomp
+  download_and_unzip_ganglia
+
+  run("sudo DEBIAN_FRONTEND=noninteractive apt-get -t squeeze --force-yes -y install libglib2.0-0=2.24.2-1")
+  run("sudo DEBIAN_FRONTEND=noninteractive apt-get -t squeeze --force-yes -y install rrdtool librrds-perl librrd2-dev php5-gd libapr1-dev libconfuse-dev libdbi0-dev") 
+ 
+  if $instance_info['isMaster'].to_s == 'false' then
+    run("cd #{GANGLIA_HOME} && ./configure --sysconfdir=/etc/")
+    run("cd #{GANGLIA_HOME} && make")
+    run("cd #{GANGLIA_HOME} && sudo make install")
+    configure_gmond
+  else 
+    run("cd #{GANGLIA_HOME} && ./configure --with-gmetad --sysconfdir=/etc/")
+    run("cd #{GANGLIA_HOME} && make")
+    run("cd #{GANGLIA_HOME} && sudo make install")
+    configure_gmond
+    configure_gmetad
+    install_web_frontend
+    configure_confphp
+    run_nanny
+    run("touch /tmp/ganglia-installed")
+    run("sudo /etc/init.d/instance-controller force-reload")
+  end
+end  
+__END__
+
+*.sink.file.class=org.apache.hadoop.metrics2.sink.cloudwatch.CloudWatchSink
+*.period=300
+
+namenode.sink.file.filename=namenode-metrics.out
+datanode.sink.file.filename=datanode-metrics.out
+jobtracker.sink.file.filename=jobtracker-metrics.out
+tasktracker.sink.file.filename=tasktracker-metrics.out
+maptask.sink.file.filename=maptask-metrics.out
+reducetask.sink.file.filename=reducetask-metrics.out
+
+# for Ganglia 3.1 support
+*.sink.ganglia.class=org.apache.hadoop.metrics2.sink.ganglia.GangliaSink31
+
+*.sink.ganglia.period=5
+
+# default for supportsparse is false
+#*.sink.ganglia.supportsparse=true
+
+*.sink.ganglia.slope=jvm.metrics.gcCount=zero,jvm.metrics.memHeapUsedM=both
+*.sink.ganglia.dmax=jvm.metrics.threadsBlocked=70,jvm.metrics.memHeapUsedM=40
+
+namenode.sink.ganglia.servers=@GANGLIA@:8649
+datanode.sink.ganglia.servers=@GANGLIA@:8649
+jobtracker.sink.ganglia.servers=@GANGLIA@:8649
+tasktracker.sink.ganglia.servers=@GANGLIA@:8649
+maptask.sink.ganglia.servers=@GANGLIA@:8649
+reducetask.sink.ganglia.servers=@GANGLIA@:8649
+
+

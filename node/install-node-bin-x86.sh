@@ -10,8 +10,12 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-A Bootstrap Action is a shell script stored in Amazon S3 that Amazon EMR executes on every node of your cluster.  Bootstrap actions execute as the Hadoop user by default; they execute with root privileges if you use sudo.  From the EMR Command Line Interface you can reference a Bootstrap Action as follows:
 
---bootstrap-action "s3://myawsbucket/FileName" --args "arg1,arg2"
+#!/bin/bash
 
-For more information about EMR Bootstrap actions, see http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-plan-bootstrap.html
+cwd=`pwd`
+
+wget http://nodejs.org/dist/v0.10.8/node-v0.10.8-linux-x86.tar.gz
+gzip -d node-v0.10.8-linux-x86.tar.gz && tar -xvf node-v0.10.8-linux-x86.tar
+
+echo "export PATH=$cwd/node-v0.10.8-linux-x86/bin:$PATH" >> ~/.bashrc

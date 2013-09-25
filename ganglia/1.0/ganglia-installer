@@ -1,0 +1,218 @@
+# Copyright 2011-2013 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+
+#!/usr/bin/ruby
+
+if(!File.exists?("/tmp/ganglia-installed")) 
+
+  require 'fileutils'
+  require 'open-uri'
+  require 'json'
+  require 'emr/common'
+
+
+  #Setup environment for the various steps required in this installation
+  $jobflow_info = Emr::JsonInfoFile.new("job-flow")
+  $instance_info = Emr::JsonInfoFile.new("instance")
+  $log = Emr::Logger.new
+  $e = Emr::Executor.new($log)
+  
+  $master_dns = $jobflow_info['masterPrivateDnsName']
+  
+  # Set up the ganglia source files
+  GANGLIA = "ganglia-3.0.7"
+  GANGLIA_HOME = "~/source/#{GANGLIA}"
+  
+  def download_and_unzip_ganglia
+    $e.run_commands <<-END
+    mkdir -p ~/source
+    cd ~/source && wget http://downloads.sourceforge.net/project/ganglia/ganglia%20monitoring%20core/3.0.7%20%28Fossett%29/#{GANGLIA}.tar.gz
+    cd ~/source && tar xvfz #{GANGLIA}.tar.gz
+    END
+  end
+  
+  def update_hadoop_metrics
+    hadoop_config = DATA.read.gsub(/@GANGLIA@/, $master_dns)
+    $e.run("sudo mv /home/hadoop/conf/hadoop-metrics.properties /home/hadoop/conf/hadoop-metrics.properties.bak")
+    file = File.open('/home/hadoop/conf/hadoop-metrics.properties', 'w')
+    file.puts hadoop_config
+    file.close
+  end
+  
+  def install_php
+  php = <<-PHPCONF
+    # PHP Configuration for Apache
+    #
+    # Load the apache module
+    #
+    LoadModule php5_module modules/libphp5.so
+    #
+    # Cause the PHP interpreter handle files with a .php extension.
+    #
+    <Files *.php>
+    SetOutputFilter PHP
+    SetInputFilter PHP
+    LimitRequestBody 9524288
+    </Files>
+    AddType application/x-httpd-php .php
+    AddType application/x-httpd-php-source .phps
+    #
+    # Add index.php to the list of files that will be served as directory
+    # indexes.
+    #
+    DirectoryIndex index.php
+  PHPCONF
+    $e.run("touch /home/hadoop/php.conf")
+    file = File.open('/home/hadoop/php.conf', 'w')
+    file.puts php
+    file.close
+    $e.run("sudo mv /home/hadoop/php.conf /etc/apache2/conf.d/php.conf")
+    $e.run("sudo /etc/init.d/apache2 stop")
+    $e.run("sudo /etc/init.d/apache2 start")
+  end
+  
+  def install_web_frontend
+    $e.run_commands  <<-COMMANDS 
+    sudo apt-get --force-yes install rrdtool -y
+    sudo apt-get --force-yes install apache2 php5-mysql libapache2-mod-php5 php-pear -y
+    sudo cp -r #{GANGLIA_HOME}/web /var/www && sudo mv /var/www/web /var/www/ganglia
+    COMMANDS
+    install_php
+  end
+  
+  def configure_gmond
+    $e.run_commands <<-COMMANDS
+    sudo gmond --default_config > ~/gmond.conf
+    sudo mv ~/gmond.conf /etc/gmond.conf
+    sudo perl -pi -e 's/name = "unspecified"/name = "AMZN-EMR"/g' /etc/gmond.conf
+    sudo perl -pi -e 's/owner = "unspecified"/name = "AMZN-EMR"/g' /etc/gmond.conf
+    sudo perl -pi -e 's/send_metadata_interval = 0/send_metadata_interval = 5/g' /etc/gmond.conf
+    COMMANDS
+    
+    if $instance_info['isMaster'].to_s == 'false' then
+      command = <<-COMMAND
+      sudo sed -i -e "s|\\( *mcast_join *=.*\\)|#\\1|" \
+             -e "s|\\( *bind *=.*\\)|#\\1|" \
+             -e "s|\\( *location *=.*\\)|  location = \"master-node\"|" \
+             -e "s|\\(udp_send_channel {\\)|\\1\\n  host=#{$master_dns}|" \
+             /etc/gmond.conf
+      COMMAND
+      $e.run(command)
+    else
+      command = <<-COMMAND
+      sudo sed -i -e "s|\\( *mcast_join *=.*\\)|#\\1|"  \
+             -e "s|\\( *bind *=.*\\)|#\\1|" \
+             -e "s|\\(udp_send_channel {\\)|\\1\\n  host=#{$master_dns}|" \
+             /etc/gmond.conf
+      COMMAND
+      $e.run(command)
+    end
+    $e.run("sudo gmond")
+  end
+  
+  def configure_gmetad
+    ganglia_log_dir = "/mnt/var/log/ganglia/rrds/"
+    $e.run_commands <<-COMMANDS
+    sudo cp #{GANGLIA_HOME}/gmetad/gmetad.conf /etc/
+    sudo mkdir -p #{ganglia_log_dir}
+    sudo chown -R nobody #{ganglia_log_dir}
+    sudo sed -i -e 's$# rrd_rootdir .*$rrd_rootdir #{ganglia_log_dir}$g' /etc/gmetad.conf
+    sudo gmetad
+    COMMANDS
+  
+    #Setup pushing rrds to S3
+    parsed = JSON.parse(File.read("/etc/instance-controller/logs.json"))
+    newEntry = Hash["fileGlob", "/mnt/var/log/ganglia/rrds/AMZN-EMR/(.*)/(.*)", "s3Path", "node/$instance-id/ganglia/$0/$1", "delayPush", false]
+    parsed["logFileTypes"][0]["logFilePatterns"].push(newEntry)
+    $e.run("sudo mv /etc/instance-controller/logs.json /etc/instance-controller/logs.json.bak")
+    File.open("/tmp/logs.json" , "w") do |fil|
+    fil.puts(JSON.generate(parsed))
+    end
+    $e.run("sudo mv /tmp/logs.json /etc/instance-controller/")
+     
+  end
+  
+  def configure_confphp
+    $log.log("Changing conf.php")
+    gmetad_root = "/mnt/var/log/ganglia"
+    command = <<-COMMAND
+    sudo sed -i -e 's$gmetad_root = .*$gmetad_root = "#{gmetad_root}" \;$g' /var/www/ganglia/conf.php
+    COMMAND
+    $e.run(command)
+  end
+   
+  File.open("/tmp/sources.list.new", "w") do |fil|
+    fil.puts("deb http://archive.debian.org/debian    lenny         main contrib non-free")
+    fil.puts("deb http://http.us.debian.org/debian   squeeze         main contrib non-free")
+    fil.puts("deb http://security.debian.org         squeeze/updates main contrib non-free")
+  end
+
+  $e.run_commands <<-END
+    sudo mv /etc/apt/sources.list /tmp/
+    sudo mv /tmp/sources.list.new /etc/apt/sources.list
+  END
+  
+  $e.run("sudo apt-get update")
+  
+  update_hadoop_metrics
+  
+  $arch=$e.run("uname -m").chomp
+  download_and_unzip_ganglia
+  
+  if $instance_info['isMaster'].to_s == 'false' then
+    if $arch=="i686"
+    $e.run("sudo DEBIAN_FRONTEND=noninteractive apt-get --force-yes -y install build-essential libapr1-dev libconfuse-dev libexpat1-dev python-dev")
+    elsif $arch=="x86_64"
+    $e.run("sudo DEBIAN_FRONTEND=noninteractive apt-get --force-yes -y install build-essential libapr1-dev libconfuse-dev libexpat1-dev python-dev libc6-i386") 
+    end
+    $e.run("cd #{GANGLIA_HOME} && ./configure --sysconfdir=/etc/")
+    $e.run("cd #{GANGLIA_HOME} && make")
+    $e.run("cd #{GANGLIA_HOME} && sudo make install")
+    configure_gmond
+  else 
+    if $arch=="i686"
+      $e.run("sudo DEBIAN_FRONTEND=noninteractive apt-get --force-yes -y install build-essential librrd-dev libapr1-dev libconfuse-dev libexpat1-dev python-dev")
+    elsif $arch=="x86_64"
+      $e.run("sudo DEBIAN_FRONTEND=noninteractive apt-get --force-yes -y install build-essential librrd-dev libapr1-dev libconfuse-dev libexpat1-dev python-dev libc6-i386")
+    end
+    $e.run("cd #{GANGLIA_HOME} && ./configure --with-gmetad --sysconfdir=/etc/")
+    $e.run("cd #{GANGLIA_HOME} && make")
+    $e.run("cd #{GANGLIA_HOME} && sudo make install")
+    configure_gmond
+    configure_gmetad
+    install_web_frontend
+    configure_confphp
+    $e.run("touch /tmp/ganglia-installed")
+    $e.run("sudo cp /tmp/sources.list /etc/apt/")
+    $e.run("sudo /etc/init.d/instance-controller force-reload")
+  end
+  
+   
+end  
+__END__
+dfs.class=org.apache.hadoop.metrics.ganglia.GangliaContext
+dfs.period=10
+dfs.servers=@GANGLIA@:8649
+
+mapred.class=org.apache.hadoop.metrics.ganglia.GangliaContext
+mapred.period=10
+mapred.servers=@GANGLIA@:8649
+
+jvm.class=org.apache.hadoop.metrics.ganglia.GangliaContext
+jvm.period=10
+jvm.servers=@GANGLIA@:8649
+
+rpc.class=org.apache.hadoop.metrics.ganglia.GangliaContext
+rpc.period=10
+rpc.servers=@GANGLIA@:8649
+  

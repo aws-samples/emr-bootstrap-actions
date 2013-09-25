@@ -1,0 +1,143 @@
+# Copyright 2011-2013 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+
+#!/usr/bin/ruby
+
+require 'json'
+require 'set'
+
+INFO_DIR = "/mnt/var/lib/info/"
+
+VALID_FILES = [ "job-flow", "instance" ].to_set
+
+def usage
+  puts "<JSON path>[!]=<value> <command> [args...]"
+  puts ""
+  puts "JSON path"
+  puts "    A path in the instance config or job flow config for the key we should look up."
+  puts ""
+  puts "Value"
+  puts "    The value we expect to find."
+  puts ""
+  puts "Command"
+  puts "    The command to run if the value is what we expect (or not what we expect in the"
+  puts "    case of !=). This can be a path in S3 or a local command."
+  puts ""
+  puts "Args"
+  puts "    Arguments to pass to the command as it runs."
+  puts ""
+  puts ""
+  puts "Example Usage:"
+  puts "instance.isMaster=true echo Running on master node"
+  exit -1
+end
+
+def extract_value(json, json_path)
+  begin
+    path = json_path.split('.')
+    visited = []
+    for item in path
+      if !json.kind_of? Hash then
+        raise "#{visited.join('.')} not of type object, got '#{json}'"
+      end
+      visited << item
+      json = json[item]
+    end
+    if json == nil then
+      raise "#{visited.join('.')} does not exist"
+    end
+    return json
+  rescue
+    puts "Unable to process path '#{json_path}', #{$!}"
+    exit -1
+  end
+end
+
+def quote(arg)
+  '"' + arg.gsub('"', '\"') + '"'
+end
+
+def download_and_execute_command(command, args)
+  file_name = command
+  execute_name = command
+  
+  # If the command starts with s3:// or s3n://
+  if command.match(/s3[n]{0,1}:\/\/.*/) then
+    puts "Attempting to download file '#{command}'"
+    system("/home/hadoop/bin/hadoop fs -copyToLocal #{command} ./")
+    
+    if $? != 0 then
+      puts "Error downloading file from Amazon S3"
+      exit $?
+    end
+    
+    file_name = command.split('/')[-1]
+    
+    file_first_line = IO.read(file_name, 10000)
+    
+    if file_first_line.match(/^#![^\n]*\r\n/) then
+      puts "Found dos formatted file #{file_name}, converting to unix format"
+      system("sed -i -e 's/\r$//' #{file_name}")
+      if $? != 0 then
+        puts "Error converting file to unix format"
+        exit $?
+      end
+    end
+    File.chmod(0755, file_name)
+    execute_name = "./" + file_name
+  end
+  
+  cmd = execute_name + " " + args.map { |x| quote(x) }.join(" ")
+  puts "Executing command: #{cmd}"
+  system(cmd)
+  if $? == nil then
+    exit -1
+  else
+    exit $?.exitstatus
+  end
+end
+
+if ARGV.size < 2 then
+  usage
+else
+  conditional = ARGV[0]
+  command = ARGV[1]
+  args = ARGV[2..-1]
+  
+  parsed_conditional = conditional.match(/([^.]+)\.([^!=]+)(!{0,1}=)(.*)/)
+  
+  if !parsed_conditional then
+    puts "Unable to parse conditional '#{conditional}', must be of form: 'file.path=value' or 'file.path!=value'"
+    exit -1
+  end
+  
+  file      = parsed_conditional[1]
+  json_path = parsed_conditional[2]
+  equals    = parsed_conditional[3]
+  value     = parsed_conditional[4]
+  
+  if !VALID_FILES.include?(file) then
+    puts "Unknown configuration file: ", file
+    exit -1
+  end
+  
+  json = JSON.parse(File.read(INFO_DIR + file + ".json"))
+  
+  found_value = extract_value(json, json_path)  
+  
+  if (found_value.to_s == value.to_s && equals == "=") || (found_value.to_s != value.to_s && equals == "!=") then
+    puts download_and_execute_command(command, args)
+  else
+    puts "Condition '#{conditional}' is false, so not running command."
+  end
+end
