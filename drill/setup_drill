@@ -63,5 +63,30 @@ drill.exec: {
 }
 
 EOF
+)
 end
+
+if is_master
+   run "sudo apt-get -y install zookeeper expect"
+end
+
+run "cd /home/hadoop && curl -L --silent --show-error --fail --connect-timeout 30 --max-time 600 --retry 5 -O http://people.apache.org/~jacques/apache-drill-1.0.0-m1.rc3/apache-drill-1.0.0-m1-binary-release.tar.gz && tar xzf apache-drill-1.0.0-m1-binary-release.tar.gz"
+
+run "mv apache-drill-1.0.0-m1 drill"
+run "cp -f /home/hadoop/drill/drill-override.conf /home/hadoop/drill/conf/drill-override.conf"
+run "mkdir -p /mnt/var/run/drill"
+run "cp start_drill.sh /mnt/var/run/drill/run_drill"
+
+File.open('/mnt/var/run/drill/run_drill', 'w') do |f|
+  f.write(<<EOF
+export DRILL_LOG_DIR=/home/hadoop/drill/drill_log
+export DRILL_MAX_DIRECT_MEMORY=4096M
+/home/hadoop/drill/bin/drillbit.sh start
+EOF
+)
+end
+
+# Download the drill.conf for BA
+run "wget http://67.160.118.161:8000/drill.conf"
+run "ln -sf drill.conf /etc/service-nanny/drill.conf"
 
