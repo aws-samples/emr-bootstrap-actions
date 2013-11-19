@@ -2,15 +2,13 @@
 set -e -x
 
 # Usage:
-#  --download-location - Base URL to find the Phoenix files, default http://s3.amazonaws.com/beta.elasticmapreduce/bootstrap-actions/phoenix/2.0.2/
-#  --phoenix-server - Phoenix Server file that will be copied to the Hbase Lib folder on all servers, default is phoenix-2.0.2.jar
-#  --phoenix-client - Phoenix Client file that will be copied to the Hbase Lib folder on the master node, default is phoenix-2.0.2-client.jar
+#  --download-location - Base URL to find the Phoenix files, default http://s3.amazonaws.com/elasticmapreduce/bootstrap-actions/phoenix/2.1.2/
+#  --phoenix-server - Phoenix Server file that will be copied to the Hbase Lib folder on all servers, default is phoenix-2.1.2.jar
 #  --hbase-version - an alternative HBase Verison path to use, default /home/hadoop/.versions/<$HBASE_VERSION>/
-#  --slaves - indicates that the Phoenix service jar will be deployed on all slave nodes, defaults to true
 
 PRODUCTNAME=phoenix
-VERSION=2.1.0
-DOWNLOAD_LOCATION=http://s3.amazonaws.com/beta.elasticmapreduce/bootstrap-actions/$PRODUCTNAME/$VERSION/
+VERSION=2.1.2
+DOWNLOAD_LOCATION=http://s3.amazonaws.com/elasticmapreduce/bootstrap-actions/$PRODUCTNAME/$VERSION/
 HBASE_VERSION=hbase-0.94.7
 
 
