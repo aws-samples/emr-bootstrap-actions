@@ -34,7 +34,9 @@ is_master = instance_info['isMaster'].to_s == 'true'
 zookeeper = job_flow['masterPrivateDnsName']
 
 if is_master
-   sudo "apt-get -y install rubygems zookeeper expect"
+   sudo "wget http://archive.cloudera.com/cdh4/one-click-install/redhat/6/x86_64/cloudera-cdh-4-0.x86_64.rpm"
+   sudo "yum -y --nogpgcheck localinstall cloudera-cdh-4-0.x86_64.rpm"
+   sudo "yum -y install rubygems zookeeper zookeeper-server expect"
 end
 
 require 'rubygems'
@@ -99,12 +101,6 @@ File.open('/tmp/drill.conf', 'w') do |f|
           f.write(<<EOF
 [
 
-{ "name": "run-zookeeper",
-  "type": "file",
-  "file": "/mnt/var/run/drill/run-zookeeper",
-  "pattern": "1"
-},
-
 { "name": "run-drill",
   "type": "file",
   "file": "/mnt/var/run/drill/run-drill",
@@ -124,11 +120,10 @@ File.open('/tmp/drill.conf', 'w') do |f|
 {
   "name": "zookeeper",
   "type": "process",
-  "start": "/etc/init.d/zookeeper start",
-  "stop": "/etc/init.d/zookeeper stop",
+  "start": "/etc/init.d/zookeeper-server start",
+  "stop": "/etc/init.d/zookeeper-server stop",
   "pid-file": "/mnt/var/run/drill/drill-hadoop-zookeeper.pid",
   "pattern": "org.apache.zookeeper.server.quorum.QuorumPeerMain",
-  "depends": ["run-zookeeper"]
 }
 
 ]
@@ -137,3 +132,4 @@ EOF
 end
 sudo "mv /tmp/drill.conf /etc/service-nanny/drill.conf"
 sudo "/etc/init.d/service-nanny reload"
+sudo "/etc/init.d/zookeeper-start init" if is_master
