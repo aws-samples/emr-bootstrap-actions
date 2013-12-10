@@ -95,7 +95,17 @@ EOF
 )
 end
 
+File.open('/tmp/stop_drill', 'w') do |f|
+  f.write(<<EOF
+/home/hadoop/drill/bin/drillbit.sh stop
+EOF
+)
+end
+
+
 sudo "mv /tmp/run_drill /mnt/var/run/drill/run_drill"
+sudo "mv /tmp/stop_drill /mnt/var/run/drill/stop_drill"
+
 
 File.open('/tmp/drill.conf', 'w') do |f|
           f.write(<<EOF
@@ -110,8 +120,8 @@ File.open('/tmp/drill.conf', 'w') do |f|
 {
   "name": "drill-bit",
   "type": "process",
-  "start": "/etc/init.d/drillbit start",
-  "stop": "/etc/init.d/drillbit stop",
+  "start": "/mnt/var/run/drill/run_drill",
+  "stop": "/mnt/var/run/drill/stop_drill",
   "pid-file": "/mnt/var/run/drill/drill_bit.pid",
   "pattern": "DrillBit",
   "depends": ["run-drill", "zookeeper"]
@@ -132,4 +142,4 @@ EOF
 end
 sudo "mv /tmp/drill.conf /etc/service-nanny/drill.conf"
 sudo "/etc/init.d/service-nanny reload"
-sudo "/etc/init.d/zookeeper-start init" if is_master
+sudo "/etc/init.d/zookeeper-server init" if is_master
