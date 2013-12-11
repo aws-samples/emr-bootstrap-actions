@@ -28,23 +28,30 @@ def sudo(cmd)
    run("sudo #{cmd}")
 end
 
+def println(*args)
+    print *args
+    puts
+end
+
 job_flow = Emr::JsonInfoFile.new('job-flow')
 instance_info = Emr::JsonInfoFile.new('instance')
 is_master = instance_info['isMaster'].to_s == 'true'
-zookeeper = job_flow['masterPrivateDnsName']
+$zookeeper = job_flow['masterPrivateDnsName']
 
-if is_master
-   sudo "wget http://archive.cloudera.com/cdh4/one-click-install/redhat/6/x86_64/cloudera-cdh-4-0.x86_64.rpm"
-   sudo "yum -y --nogpgcheck localinstall cloudera-cdh-4-0.x86_64.rpm"
-   sudo "yum -y install rubygems zookeeper zookeeper-server expect"
+def cleanUp(targetDir,runDir,logDir)
+    println "Cleaning up stale directories.. "
+    println "\t#{targetDir}/*drill*"
+    sudo "rm -rf #{targetDir}/*drill*"
+    println "\t/home/hadoop/drill"
+    sudo "rm -rf /home/hadoop/drill"
+    println "\t#{runDir} #{logDir}"
+    sudo "rm -rf #{runDir} #{logDir}"
 end
 
-require 'rubygems'
-
-sudo "curl -L --silent --show-error --fail --connect-timeout 60 --max-time 720 --retry 5 -O http://people.apache.org/~jacques/apache-drill-1.0.0-m1.rc3/apache-drill-1.0.0-m1-binary-release.tar.gz && tar xzf apache-drill-1.0.0-m1-binary-release.tar.gz && mv -f apache-drill-1.0.0-m1 /home/hadoop/.versions/ && chown -R hadoop.hadoop /home/hadoop/.versions/apache-drill-1.0.0-m1 && ln -sf /home/hadoop/.versions/apache-drill-1.0.0-m1 /home/hadoop/drill"
-
-File.open('/tmp/drill-override.conf', 'w') do |f|
-  f.write(<<EOF
+def writeDrillConfs(runDir,logDir)
+    zookeeperConnect=$zookeeper
+    File.open('/tmp/drill-override.conf', 'w') do |f|
+    f.write(<<EOF
 drill.exec: {
   cluster-id: "EMR-Drill"
   rpc: {
@@ -64,7 +71,7 @@ drill.exec: {
         context: "drillbit"
   },
   zk: {
-        connect: "#{zookeeper}",
+        connect: "#{zookeeperConnect}",
         root: "/drill",
         refresh: 500,
         timeout: 5000,
@@ -78,68 +85,146 @@ drill.exec: {
     start: 35000
   }
 }
-
 EOF
 )
 end
 
-sudo "mv /tmp/drill-override.conf /home/hadoop/drill/conf/drill-override.conf"
-sudo "mkdir -p /mnt/var/run/drill && mkdir -p /mnt/var/log/drill && chown -R hadoop.hadoop /mnt/var/log/drill"
+    sudo "mv /tmp/drill-override.conf /home/hadoop/drill/conf/drill-override.conf && chmod 644 /home/hadoop/drill/conf/drill-override.conf"
 
-File.open('/tmp/run_drill', 'w') do |f|
-  f.write(<<EOF
+    File.open('/tmp/drillbit', 'w') do |f| 
+    f.write(<<EOF
 export DRILL_LOG_DIR=/mnt/var/log/drill
+export DRILL_PID_DIR=/mnt/var/run/drill
 export DRILL_MAX_DIRECT_MEMORY=4096M
-/home/hadoop/drill/bin/drillbit.sh start
+/home/hadoop/drill/bin/drillbit.sh $@
 EOF
 )
 end
-
-File.open('/tmp/stop_drill', 'w') do |f|
-  f.write(<<EOF
-/home/hadoop/drill/bin/drillbit.sh stop
-EOF
-)
-end
-
-
-sudo "mv /tmp/run_drill /mnt/var/run/drill/run_drill"
-sudo "mv /tmp/stop_drill /mnt/var/run/drill/stop_drill"
-
-
-File.open('/tmp/drill.conf', 'w') do |f|
-          f.write(<<EOF
+    sudo "mv /tmp/drillbit /etc/init.d/drillbit && chmod a+x /etc/init.d/drillbit"
+    File.open('/tmp/drill.conf', 'w') do |f| 
+    f.write(<<EOF
 [
 
-{ "name": "run-drill",
+{
+  "name": "run-drill-zookeeper",
   "type": "file",
-  "file": "/mnt/var/run/drill/run-drill",
+  "file": "#{runDir}/run-zookeeper",
+  "pattern": "1"
+},
+
+{
+  "name": "run-drill",
+  "type": "file",
+  "file": "#{runDir}/run-drill",
   "pattern": "1"
 },
 
 {
   "name": "drill-bit",
   "type": "process",
-  "start": "/mnt/var/run/drill/run_drill",
-  "stop": "/mnt/var/run/drill/stop_drill",
-  "pid-file": "/mnt/var/run/drill/drill_bit.pid",
-  "pattern": "DrillBit",
-  "depends": ["run-drill", "zookeeper"]
+  "start": "/etc/init.d/drillbit start",
+  "stop": "/etc/init.d/drillbit stop",
+  "pid-file": "#{runDir}/drillbit.pid",
+  "pattern": "org.apache.drill.exec.server.Drillbit",
+  "depends": ["run-drill", "drill-zookeeper"]
 },
 
 {
-  "name": "zookeeper",
+  "name": "drill-zookeeper",
   "type": "process",
-  "start": "/etc/init.d/zookeeper-server start",
-  "stop": "/etc/init.d/zookeeper-server stop",
-  "pid-file": "/mnt/var/run/drill/drill-hadoop-zookeeper.pid",
+  "start": "/home/hadoop/drill/zookeeper/bin/zkServer.sh start",
+  "stop": "/home/hadoop/drill/zookeeper/bin/zkServer.sh stop",
+  "pid-file": "#{runDir}/zookeeper/zookeeper_server.pid",
   "pattern": "org.apache.zookeeper.server.quorum.QuorumPeerMain",
+  "depends": ["run-drill-zookeeper"]
 }
 
 ]
 EOF
 )
 end
-sudo "mv /tmp/drill.conf /etc/service-nanny/drill.conf"
-sudo "/etc/init.d/service-nanny reload"
-sudo "/etc/init.d/zookeeper-server init" if is_master
+
+    sudo "mv /tmp/drill.conf /etc/service-nanny/drill.conf"
+    sudo "echo '1' >/mnt/var/run/drill/run-zookeeper"
+    sudo "echo '1' >/mnt/var/run/drill/run-drill"
+
+end
+
+def installZookeeper(targetDir, runDir, logDir)
+    zkTarGZUrl="http://beta.elasticmapreduce.s3.amazonaws.com/bootstrap-actions/zookeeper-standalone"
+    zkTarGZ="zookeeper-3.4.5.tar.gz"
+
+    println "Going to download Zookeeper distribution #{zkTarGZ} from #{zkTarGZUrl}"
+    sudo "curl -L --silent --show-error --fail --connect-timeout 60 --max-time 720 --retry 5 -O  #{zkTarGZUrl}/#{zkTarGZ}"
+
+    println "Installing zookeeper in #{targetDir}"
+    sudo "tar xzf #{zkTarGZ} && rm -f #{zkTarGZ}"
+    sudo "mv *zookeeper* #{targetDir}/"
+    sudo "ln -s `ls -d #{targetDir}/*zookeeper*` /home/hadoop/drill/zookeeper"
+
+    File.open('/tmp/zoo.cfg', 'w') do |f|
+    f.write(<<EOF
+maxClientCnxns=50
+
+# The number of milliseconds of each tick
+tickTime=2000
+
+# The number of ticks that the initial 
+# synchronization phase can take
+initLimit=10
+
+# The number of ticks that can pass between 
+# sending a request and getting an acknowledgement
+syncLimit=5
+
+# the directory where the snapshot is stored.
+dataDir=#{runDir}
+
+# the directory where the snapshot is stored.
+dataLogDir=#{logDir}
+
+# the port at which the clients will connect
+clientPort=2181
+EOF
+)
+end
+    sudo "mv /tmp/zoo.cfg /home/hadoop/drill/zookeeper/conf/ && chmod 644 /home/hadoop/drill/zookeeper/conf/zoo.cfg"
+
+end
+
+def installDrill(targetDir, runDir, logDir)
+    drillTarGZUrl="http://people.apache.org/~jacques/apache-drill-1.0.0-m1.rc3"
+    drillTarGZ="apache-drill-1.0.0-m1-binary-release.tar.gz"
+
+    println "Going to download Apache Drill distribution #{drillTarGZ} from #{drillTarGZUrl}"
+    sudo "curl -L --silent --show-error --fail --connect-timeout 60 --max-time 720 --retry 5 -O  #{drillTarGZUrl}/#{drillTarGZ}"
+
+    println "Installing Apache Drill..."
+    sudo "tar xzf #{drillTarGZ} && rm -f #{drillTarGZ}"
+    sudo "mv *drill* #{targetDir}/ && ln -s `ls -d #{targetDir}/*drill*` /home/hadoop/drill"
+
+    sudo "mkdir -p #{runDir}/zookeeper"
+    sudo "mkdir -p #{logDir}/zookeeper"
+    println "Installing Zookeeper..."
+    installZookeeper("/home/hadoop/drill", "#{runDir}/zookeeper", "#{logDir}/zookeeper")
+
+    println "Configuring Apache Drill..."
+    sudo "chown -R hadoop.hadoop /home/hadoop/.versions/*drill*"
+    sudo "mkdir -p #{runDir} && mkdir -p #{logDir}"
+    sudo "chown -R hadoop.hadoop #{runDir}"
+    sudo "chown -R hadoop.hadoop #{logDir}"
+
+    writeDrillConfs($runDir,$logDir)
+
+    sudo "chown -R hadoop.hadoop #{runDir}"
+    sudo "chown -R hadoop.hadoop #{logDir}"
+
+    sudo "/etc/init.d/service-nanny start"
+    sudo "/etc/init.d/service-nanny reload"
+end
+
+$targetDir="/home/hadoop/.versions"
+$runDir="/mnt/var/run/drill"
+$logDir="/mnt/var/log/drill"
+cleanUp($targetDir, $runDir, $logDir)
+installDrill($targetDir, $runDir, $logDir)
