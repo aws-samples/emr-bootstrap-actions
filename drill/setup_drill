@@ -195,13 +195,14 @@ end
 def installDrill(targetDir, runDir, logDir)
     drillTarGZUrl="http://people.apache.org/~jacques/apache-drill-1.0.0-m1.rc3"
     drillTarGZ="apache-drill-1.0.0-m1-binary-release.tar.gz"
+    drillRoot="apache-drill-1.0.0-m1"
 
     println "Going to download Apache Drill distribution #{drillTarGZ} from #{drillTarGZUrl}"
     sudo "curl -L --silent --show-error --fail --connect-timeout 60 --max-time 720 --retry 5 -O  #{drillTarGZUrl}/#{drillTarGZ}"
 
     println "Installing Apache Drill..."
     sudo "tar xzf #{drillTarGZ} && rm -f #{drillTarGZ}"
-    sudo "mv *drill* #{targetDir}/ && ln -s `ls -d #{targetDir}/*drill*` /home/hadoop/drill"
+    sudo "mv #{drillRoot} #{targetDir}/ && ln -s #{targetDir}/#{drillRoot} /home/hadoop/drill"
 
     sudo "mkdir -p #{runDir}/zookeeper"
     sudo "mkdir -p #{logDir}/zookeeper"
@@ -215,6 +216,10 @@ def installDrill(targetDir, runDir, logDir)
     sudo "chown -R hadoop.hadoop #{logDir}"
 
     writeDrillConfs($runDir,$logDir)
+
+    println "Installing openjdk1.7"
+    sudo "yum -y install java-1.7.0-openjdk"
+    sudo "alternatives --set java /usr/lib/jvm/jre-1.7.0-openjdk.x86_64/bin/java"
 
     sudo "chown -R hadoop.hadoop #{runDir}"
     sudo "chown -R hadoop.hadoop #{logDir}"
