@@ -93,14 +93,22 @@ end
 
     File.open('/tmp/drillbit', 'w') do |f| 
     f.write(<<EOF
-export DRILL_LOG_DIR=/mnt/var/log/drill
-export DRILL_PID_DIR=/mnt/var/run/drill
-export DRILL_MAX_DIRECT_MEMORY=4096M
 /home/hadoop/drill/bin/drillbit.sh $@
 EOF
 )
 end
     sudo "mv /tmp/drillbit /etc/init.d/drillbit && chmod a+x /etc/init.d/drillbit"
+
+    File.open('/tmp/drill-init-config.sh', 'w') do |f|
+    f.write(<<EOF
+export DRILL_LOG_DIR=/mnt/var/log/drill
+export DRILL_PID_DIR=/mnt/var/run/drill
+export DRILL_MAX_DIRECT_MEMORY=4096M
+EOF
+)
+end
+    sudo "cat /tmp/drill-init-config.sh >> /home/hadoop/drill/bin/drill-config.sh && rm /tmp/drill-init-config.sh"
+
     File.open('/tmp/drill.conf', 'w') do |f| 
     f.write(<<EOF
 [
