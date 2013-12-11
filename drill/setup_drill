@@ -226,5 +226,7 @@ end
 $targetDir="/home/hadoop/.versions"
 $runDir="/mnt/var/run/drill"
 $logDir="/mnt/var/log/drill"
-cleanUp($targetDir, $runDir, $logDir)
-installDrill($targetDir, $runDir, $logDir)
+if is_master
+    cleanUp($targetDir, $runDir, $logDir)
+    installDrill($targetDir, $runDir, $logDir)
+end
