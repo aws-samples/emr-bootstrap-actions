@@ -17,8 +17,8 @@ if [ "$secgroup" == "ElasticMapReduce-master" ]
 then
   
   # and copy R example scripts to user's home dir amd set permission
-  wget --no-check-certificate https://github.com/schmidb/emr-bootstrap-actions/blob/master/RonEMR/examples/rmr2_example.R
-  wget --no-check-certificate https://github.com/schmidb/emr-bootstrap-actions/blob/master/RonEMR/examples/biganalyses_example.R
+  wget --no-check-certificate https://github.com/schmidb/emr-bootstrap-actions/blob/master/R/Hadoop/examples/rmr2_example.R
+  wget --no-check-certificate https://github.com/schmidb/emr-bootstrap-actions/blob/master/R/Hadoop/examples/biganalyses_example.R
   sudo mv *.R /home/rstudio/.
   sudo chown rstudio:rstudio -Rf /home/rstudio
 fi
