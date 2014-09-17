@@ -27,11 +27,5 @@ then
   
   # change port - 8787 will not work for many companies
   sudo sh -c "echo 'www-port=80' >> /etc/rstudio/rserver.conf"
-  sudo rstudio-server restart  
-  
-  # and copy R example scripts to user's home dir amd set permission
-  wget --no-check-certificate https://s3-eu-west-1.amazonaws.com/schmidbe/emR/rmr2_example.R
-  wget --no-check-certificate https://s3-eu-west-1.amazonaws.com/schmidbe/emR/biganalyses_example.R
-  sudo mv *.R /home/rstudio/.
-  sudo chown rstudio:rstudio -Rf /home/rstudio
+  sudo rstudio-server restart
 fi

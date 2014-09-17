@@ -7,7 +7,8 @@ Please copy all files to a S3 bucket.
 
 With the following command you can start an EMR cluster with R, Rhadoop and RStudio installed. Please replace <YOUR-X> with your data:
 
-``aws emr create-cluster --ami-version 3.2.1 --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m1.large InstanceGroupType=CORE,InstanceCount=2,InstanceType=m1.large --bootstrap-actions Path=s3://<YOUR-BUCKET>/RStudio_bootstrap.sh,Name=CustomAction Path=s3://<YOUR-Bucket>/emR_bootstrap.sh,Name=CustomAction --bootstrap-actions Path=s3://<YOUR-BUCKET>/Rexamples_bootstrap.sh,Name=CustomAction --steps Name=HDFS_tmp_permission,Jar=s3://elasticmapreduce/libs/script-runner/script-runner.jar,Args=s3://<YOUR-BUCKET>/hdfs_permission.sh  --region us-east-1 --ec2-attributes KeyName=<YOUR-SSH-KEY> --no-auto-terminate --name emR-example --log-uri s3://<YOUR-LOG-BUCKET>/logs```
+``aws emr create-cluster --ami-version 3.2.1 --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m1.large InstanceGroupType=CORE,InstanceCount=2,InstanceType=m1.large --bootstrap-actions Path=s3://<YOUR-BUCKET>/RStudio_bootstrap.sh,Name=CustomAction Path=s3://<YOUR-Bucket>/emR_bootstrap.sh,Name=CustomAction Path=s3://<YOUR-BUCKET>/Rexamples_bootstrap.sh,Name=CustomAction --steps Name=HDFS_tmp_permission,Jar=s3://elasticmapreduce/libs/script-runner/script-runner.jar,Args=s3://<YOUR-BUCKET>/hdfs_permission.sh  --region us-east-1 --ec2-attributes KeyName=<YOUR-SSH-KEY> --no-auto-terminate --name emR-example --log-uri s3://<YOUR-LOG-BUCKET>/logs```
+
 
 
 File documentation
