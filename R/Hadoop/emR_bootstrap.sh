@@ -15,7 +15,7 @@
 # --rexamples - adds R examples to the user home dir, default false
 # --rhdfs - installs rhdfs package, default false
 # --plyrmr - installs plyrmr package, default false
-# --updater - installs latest R version, default false
+# --updateR - installs latest R version, default false
 # --user - sets user for rstudio, default "rstudio"
 # --user-pw - sets user-pw for user USER, default "rstudio"
 # --rstudio-port - sets rstudio port, defaul 80
@@ -59,7 +59,7 @@ while [ $# -gt 0 ]; do
 		--rhdfs)
 			RHDFS=true
 			;;
-		--updater)
+		--updateR)
 			$UPDATER=true
 			;;
         --rstudio-port)
@@ -112,6 +112,7 @@ if [ "$IS_MASTER" = true -a "$REXAMPLES" = true ]; then
   # and copy R example scripts to user's home dir amd set permission
   wget --no-check-certificate https://raw.githubusercontent.com/schmidb/emr-bootstrap-actions/master/R/Hadoop/examples/rmr2_example.R
   wget --no-check-certificate https://raw.githubusercontent.com/schmidb/emr-bootstrap-actions/master/R/Hadoop/examples/biganalyses_example.R
+  wget --no-check-certificate https://raw.githubusercontent.com/schmidb/emr-bootstrap-actions/master/R/Hadoop/examples/change_pw.R
   sudo mv *.R /home/$USER/.
   sudo chown $USER:$USER -Rf /home/$USER
 fi
