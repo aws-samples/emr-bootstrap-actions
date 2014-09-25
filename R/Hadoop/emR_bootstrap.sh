@@ -40,7 +40,7 @@ error_msg ()
 RSTUDIO=false
 REXAMPLES=false
 USER="rstudio"
-USER_PW="rstudio"
+USERPW="rstudio"
 PLYRMR=false
 RHDFS=false
 UPDATER=false
@@ -60,7 +60,7 @@ while [ $# -gt 0 ]; do
 			RHDFS=true
 			;;
 		--updateR)
-			$UPDATER=true
+			UPDATER=true
 			;;
         --rstudio-port)
             shift
@@ -72,7 +72,7 @@ while [ $# -gt 0 ]; do
 		   ;;
    		--user-pw)
    		   shift
-   		   USER_PW=$1
+   		   USERPW=$1
    		   ;;
 		-*)
 			# do not exit out, just note failure
@@ -89,7 +89,7 @@ done
 # create rstudio user on all machines
 # we need a unix user with home directory and password and hadoop permission
 sudo adduser $USER
-sudo sh -c "echo '$USER_PW' | passwd $USER --stdin"
+sudo sh -c "echo '$USERPW' | passwd $USER --stdin"
 
 
 # install rstudio
@@ -122,12 +122,14 @@ fi
 if [ "$UPDATER" = true ]; then
 	mkdir R-latest
 	cd R-latest
-	wget http://cran.r-project.org/src/base/R-latest.tar.gz | tar zx
-	sudo yum install gcc
-	sudo yum install gcc-c++
-	sudo yum install gcc-gfortran
-	sudo yum install readline-devel
-	./configure --with-x=no
+	wget http://cran.r-project.org/src/base/R-latest.tar.gz
+	tar -xzf R-latest.tar.gz
+	sudo yum install -y gcc
+	sudo yum install -y gcc-c++
+	sudo yum install -y gcc-gfortran
+	sudo yum install -y readline-devel
+	cd R-3*
+	./configure --with-x=no --with-readline=no --enable-R-profiling=no --enable-memory-profiling=no
 	make
 	sudo make install
     sudo su << EOF1
