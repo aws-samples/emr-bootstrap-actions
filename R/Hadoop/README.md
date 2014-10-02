@@ -1,7 +1,7 @@
 Running open-source R on EMR with Rhadoop packages and RStudio
 =====================
 
-More documentation you can find at the following AWS Big Data Blog post (link comming soon, planed for 2. October)
+More documentation you can find at the following AWS Big Data Blog post (http://blogs.aws.amazon.com/bigdata/post/Tx37RSKRFDQNTSL/Statistical-Analysis-with-Open-Source-R-and-RStudio-on-Amazon-EMR)
 
 Please copy all files to a S3 bucket.
 
