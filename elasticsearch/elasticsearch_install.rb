@@ -22,7 +22,8 @@ sudo("cp /mnt/var/lib/instance-controller/extraInstanceData.json" +
 # this is where additional logs are sent in case terminal output needs to be caught
 @log_dir = "/home/hadoop/elasticsearch/"
 @elasticsearch_version = "1.3.1"
-@elasticsearch_port_num = 9030
+@elasticsearch_port_num = 9200
+@elasticsearch_port_slaves = 9202
 
 def load_aws_keys
   core_sites = REXML::Document.new(File.new("/home/hadoop/conf/core-site.xml"))
@@ -50,7 +51,11 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
   run("mkdir " + target_dir)
   run("tar xvf " + tarball + " -C " + target_dir)
   File.open("elasticsearch.yml", "w") do |config|
-    config.puts("http.port: #{@elasticsearch_port_num}")
+    if @is_master==true
+       config.puts("http.port: #{@elasticsearch_port_num}")
+    else
+       config.puts("http.port: #{@elasticsearch_port_slaves}")
+    end
     config.puts("node.master: #{@is_master}")
     config.puts("node.data: true")
     config.puts("cluster.name: #{@cluster_name}")
@@ -58,6 +63,7 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
     config.puts("cloud.aws.access_key: #{access_key}")
     config.puts("cloud.aws.secret_key: #{secret_key}")
     config.puts("cloud.aws.region: #{@region}")
+    config.puts("discovery.ec2.tag.aws:elasticmapreduce:job-flow-id: #{@cluster_name}")
   end
 
   install_dir = "#{target_dir}elasticsearch-#{elasticsearch_version}/"

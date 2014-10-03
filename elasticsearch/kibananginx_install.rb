@@ -15,7 +15,7 @@ end
 @kibana_version = "3.1.0"
 @target_dir = "/etc/nginx/"
 @nginx_dir = "/etc/nginx/"
-@es_port_num = 9030
+@es_port_num = 9200
 
 def install_kibana(target_dir, kibana_version)
   tarball = "kibana-#{kibana_version}.tar.gz"
