@@ -1,0 +1,4 @@
+elasticsearch_install.rb v.0.9.0
+- elasticsearch will listen to port 9030 
+
+
