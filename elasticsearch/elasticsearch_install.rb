@@ -22,7 +22,7 @@ sudo("cp /mnt/var/lib/instance-controller/extraInstanceData.json" +
 # this is where additional logs are sent in case terminal output needs to be caught
 @log_dir = "/home/hadoop/elasticsearch/"
 @elasticsearch_version = "1.3.1"
-@elasticsearch_port_num = 9200
+@elasticsearch_port_master = 9200
 @elasticsearch_port_slaves = 9202
 
 def load_aws_keys
@@ -37,9 +37,9 @@ def load_aws_keys
       access_key = node.next_sibling_node().get_text
     end
   end
-  if access_key == "" && secret_key == ""
-    raise "Valid AWS access credentials not found in configuration file."
-  end
+  #if access_key == "" && secret_key == ""
+  #  raise "Valid AWS access credentials not found in configuration file."
+  #end
   return access_key, secret_key
 end
 
@@ -52,7 +52,7 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
   run("tar xvf " + tarball + " -C " + target_dir)
   File.open("elasticsearch.yml", "w") do |config|
     if @is_master==true
-       config.puts("http.port: #{@elasticsearch_port_num}")
+       config.puts("http.port: #{@elasticsearch_port_master}")
     else
        config.puts("http.port: #{@elasticsearch_port_slaves}")
     end
@@ -60,8 +60,10 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
     config.puts("node.data: true")
     config.puts("cluster.name: #{@cluster_name}")
     config.puts("discovery.type: ec2")
-    config.puts("cloud.aws.access_key: #{access_key}")
-    config.puts("cloud.aws.secret_key: #{secret_key}")
+    if access_key != "" && secret_key != ""
+       config.puts("cloud.aws.access_key: #{access_key}")
+       config.puts("cloud.aws.secret_key: #{secret_key}")
+    end
     config.puts("cloud.aws.region: #{@region}")
     config.puts("discovery.ec2.tag.aws:elasticmapreduce:job-flow-id: #{@cluster_name}")
   end
@@ -83,7 +85,7 @@ def install_hadoop_plugin(target_dir, run_dir)
 end
 
 def clean_up
-  run "rm -Rf #{@target_dir}elasticsearch-hadoop-2.0.0.zip"
+  run "rm -Rf #{@target_dir}elasticsearch-hadoop-2.0.1.zip"
   run "rm elasticsearch-#{@elasticsearch_version}.tar.gz"
 end
 
