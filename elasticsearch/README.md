@@ -1,6 +1,6 @@
 Quickstart Guide:
 
-1) To launch an EMR cluster with Elasticsearch installed, you can use the Amazon EMR CLI from the command line:
+1) To launch an EMR cluster with Elasticsearch and Kibana installed, you can use the Amazon EMR CLI from the command line:
 (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-cli-install.html)
 
 ./elastic-mapreduce --create --name TestElasticSearch --alive --key-pair your-key \
@@ -8,7 +8,9 @@ Quickstart Guide:
 --num-instances 3 \
 --instance-type m1.medium \
 --bootstrap-action s3://your-bucket/elasticsearch_install.rb \
---bootstrap-name InstallElasticSearch
+--bootstrap-name InstallElasticSearch \
+--bootstrap-action s3://your-bucket/kibananginx_install.rb \
+--bootstrap-name Installkibanaginx
 
 2) To test Elasticsearch you can ssh into the master node:
 http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-connect-master-node-ssh.html
@@ -49,3 +51,11 @@ curl -XDELETE 'http://localhost:9200/twitter/'
 2.5) Querying all the content:
 curl -XGET http://localhost:9200/_search?pretty=true&q={'matchAll':{''}}
 
+2.6) To query all the nodes configured on the Elasticsearch cluster (JSON output):
+curl -XGET 'http://localhost:9200/_nodes' 
+
+3) To check the indexed content on Kibana you can create a Windows instance on the same subnet as your Elasticsearch cluster. 
+Once the instance is up and running, point the internet browser to the Master Node public DNS name (e.g. http://ec2-54-76-121-15.eu-west-1.compute.amazonaws.com). 
+
+For more information getting started with Kibana, here you will find a walk through:
+http://www.elasticsearch.org/guide/en/kibana/current/using-kibana-for-the-first-time.html
