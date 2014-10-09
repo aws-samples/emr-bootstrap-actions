@@ -4,7 +4,7 @@ Quickstart Guide:
 (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-cli-install.html)
 
 ./elastic-mapreduce --create --name TestElasticSearch --alive --key-pair your-key \
---ami-version 3.2.0 \
+--ami-version 3.2.1 \
 --num-instances 3 \
 --instance-type m1.medium \
 --bootstrap-action s3://your-bucket/elasticsearch_install.rb \
