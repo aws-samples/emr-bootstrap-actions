@@ -85,6 +85,8 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
+# install latest R version from AWS Repo
+sudo yum update R-base -y
 
 # create rstudio user on all machines
 # we need a unix user with home directory and password and hadoop permission
