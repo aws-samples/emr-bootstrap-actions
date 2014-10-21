@@ -1,0 +1,54 @@
+#!/bin/bash
+# Configures Spark Ganglia metrics 
+#
+# script [masterip] [port]
+#    [masterip] may be "master" to designate use the cluster's master node ip, if port is given, masterip must be given
+# expects ganlgia and spark to already be installed by prior bootstrap actions
+set -x
+#
+MASTER="master"
+MASTERIP=`grep /home/hadoop/conf/yarn-site.xml -e yarn\.resourcemanager\.address | cut -d ':' -f1 | cut -d '>' -f5`
+PORT=8649
+
+if [ $# -eq 2 ]
+then
+	PORT=$2
+	MASTER=$1
+fi
+
+if [  $# -eq 1 ]
+then
+	MASTER=$1
+fi
+
+if [ "$MASTER" != "master" ]
+then
+	MASTERIP=$MASTER
+fi
+
+
+echo "Configuring Spark Ganglia configuration to use Ganglia master IP $MASTERIP and port $PORT"
+
+cat << EOF > /home/hadoop/spark/conf/ganglia.metrics.properties
+
+*.sink.ganglia.class=org.apache.spark.metrics.sink.GangliaSink
+*.sink.ganglia.name=AMZN-EMR
+*.sink.ganglia.host=$MASTERIP
+*.sink.ganglia.port=$PORT
+
+*.sink.ganglia.mode=unicast
+*.sink.ganglia.period=10
+*.sink.ganglia.unit=seconds
+
+EOF
+
+wget "http://support.elasticmapreduce.s3.amazonaws.com/spark/configure-spark.bash"
+
+bash configure-spark.bash spark.metrics.conf=/home/hadoop/spark/conf/ganglia.metrics.properties
+
+#restart local gmond and gmetad if present
+sudo pkill gmeta
+sudo pkill gmond
+sudo /usr/sbin/gmond -c /etc/gmond.conf
+
+exit 0
