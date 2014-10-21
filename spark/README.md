@@ -13,7 +13,7 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 
 
 #### Arguments (optional):   
--v <spark_version>
+-v \<version\>
 
    **If no version is given, it will install the latest version available for the EMR Hadoop version.**
 
