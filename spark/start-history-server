@@ -1,0 +1,22 @@
+#!/usr/bin/python
+# Small script to start Spark history server
+import os 
+import subprocess
+import glob
+import sys
+
+# various paths
+hadoop_home = "/home/hadoop"
+hadoop_apps = "/home/hadoop/.versions"
+spark_home = "/home/hadoop/spark"
+spark_classpath = os.path.join(spark_home,"classpath")
+spark_log_dir = "/mnt/var/log/apps"
+
+# Spark logs location used by Spark History server
+spark_evlogs = "hdfs:///spark-logs"
+
+# create hdfs folder for event logs (actually not needed, it will fail if run as BA)
+subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-mkdir","-p",spark_evlogs])
+# start spark history server
+history_server_script = os.path.join(spark_home,"sbin","start-history-server.sh")
+subprocess.check_call([history_server_script, spark_evlogs])

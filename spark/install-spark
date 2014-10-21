@@ -1,0 +1,134 @@
+#!/bin/bash
+set -x -e
+#
+# Simple script to perform third-party install of Spark on EMR clusters.
+#
+# Arguments (optional):
+#   -v <version>      - Ability to select a specific Spark build version according to supported list
+#   -g		      - For Spark builds 1.1.0.c and later, enables metrics
+#
+# Supported versions
+#
+# Hadoop 1.0.3, AMI 2.3.x and up (excluding AMI 3.x and later)
+#   Spark 0.8.1
+#
+# Hadoop 2.2.0, AMI 3.0.x
+#   Spark 1.0.0
+#
+# Hadoop 2.4.0, AMI 3.1.x, AMI 3.2.x
+#   Spark 1.0.2
+#   Spark 1.1.0
+#   Spark 1.1.0.b (httpclient 4.2.5 for aws sdk s3 integration)
+#   Spark 1.1.0.c (kinesis examples, spark-submit deploy mode default to cluster, sql hive depenency fix)
+#
+#-----------------------------------------------------
+#
+HADOOP_VERSION=`grep /mnt/var/lib/info/job-flow.json  -e hadoopVersion | cut -d ':' -f2 | cut -d'"' -f2`
+
+SPARK_081=http://elasticmapreduce.s3.amazonaws.com/samples/spark/0.8.1/install-spark-shark.sh
+#SPARK_100=http://elasticmapreduce.s3.amazonaws.com/samples/spark/1.0.0/install-spark-shark-yarn.rb
+SPARK_100=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.0.0/install-spark-shark-yarn.rb
+SPARK_102=http://support.elasticmapreduce.s3.amazonaws.com/spark/ami-3.1.1/install-spark-1.0.2.py
+SPARK_110=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.py
+SPARK_110b=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.b.py
+SPARK_110c=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.c.py
+
+GANGLIASCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/install-ganglia-metrics
+INSTALLGANGLIA=0
+
+REQUESTED_VERSION="(not specified)"
+while getopts "v:g" opt; do
+  case $opt in
+    v)
+      REQUESTED_VERSION=$OPTARG
+      ;;
+    g)
+      INSTALLGANGLIA=1
+      ;;
+  esac
+done
+
+echo "This script installs the third-party software stack Spark on an EMR cluster."
+echo "Requested Spark version: $REQUESTED_VERSION"
+echo "Hadoop Verison: $HADOOP_VERSION"
+
+# Determine avialable version based on Hadoop version
+if [ "$HADOOP_VERSION" == "1.0.3" ]
+then
+	echo "Available Spark versions: 0.8.1"
+	echo "Installing Spark version 0.8.1"
+	REQUESTED_VERSION="0.8.1"
+
+elif [ "$HADOOP_VERSION" == "2.2.0" ]
+then
+	echo "Available Spark versions: 1.0.0"
+	echo "Installing Spark verison 1.0.0"
+	REQUESTED_VERSION="1.0.0"
+
+elif [ "$HADOOP_VERSION" == "2.4.0" ] 
+then
+	echo "Available Spark versions: 1.0.2, 1.1.0, 1.1.0.b, 1.1.0.c"
+
+else
+	echo "Unknown hadoop version, unable to install"
+	exit 1
+fi
+
+#== At this time only Hadoop 2.4.0 EMR supports multiple Spark versions...check for good selection
+if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" == "(not specified)" ] 
+then
+	echo "No Spark version specified, selecting Spark 1.1.0.c"
+	REQUESTED_VERSION="1.1.0.c"
+fi
+
+if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" != "1.0.2" ] && [ "$REQUESTED_VERSION" != "1.1.0" ] && [ "$REQUESTED_VERSION" != "1.1.0.b" ] && [ "$REQUESTED_VERSION" != "1.1.0.c" ]
+then
+	echo "Unknown Spark version requested given available Spark versions for this Hadoop version"
+	exit 1
+fi
+
+
+#=============
+# Take action according to version
+if [ "$REQUESTED_VERSION" == "0.8.1" ]
+then
+	wget -O install-spark-script $SPARK_081 
+	bash install-spark-script
+elif [ "$REQUESTED_VERSION" == "1.0.0" ]
+then
+	wget -O install-spark-script $SPARK_100
+	set +e
+	ruby install-spark-script
+	set -e
+elif [ "$REQUESTED_VERSION" == "1.0.2" ]
+then
+        wget -O install-spark-script $SPARK_102
+	python install-spark-script BA
+elif [ "$REQUESTED_VERSION" == "1.1.0" ]
+then
+        wget -O install-spark-script $SPARK_110
+        python install-spark-script BA
+elif [ "$REQUESTED_VERSION" == "1.1.0.b" ]
+then
+        wget -O install-spark-script $SPARK_110b
+        python install-spark-script BA
+elif [ "$REQUESTED_VERSION" == "1.1.0.c" ]
+then
+        wget -O install-spark-script $SPARK_110c
+        python install-spark-script BA
+else
+	echo "Unknown requested Spark version, $REQUESTED_VERSION"
+	exit 1
+fi
+
+#===
+echo "Spark install complete"
+
+if [ $INSTALLGANGLIA -eq 1 ]
+then
+	wget -O install-ganglia-metrics $GANGLIASCRIPT
+	bash install-ganglia-metrics
+fi
+
+
+exit 0
