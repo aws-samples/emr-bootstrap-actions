@@ -33,6 +33,7 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
  * Spark 1.1.0
  * Spark 1.1.0.b (built with httpclient 4.2.5 to fix version conflict with AWS SDK)
  * Spark 1.1.0.c (spark-submit deploy mode default changed to cluster, kinesis examples included, ganglia metrics plugin included, sql hive dependencies fixed) 
+ * Spark 1.1.0.d (kinesis jars added to lib, added JavaKinesisWordCountASLYARN example which uses yarn-cluster for master) 
 
 
 #### Example:
