@@ -41,7 +41,7 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 Using AWS CLI:
 ```
 aws emr create-cluster --name SparkCluster --ami-version 3.2 --instance-type m3.xlarge --instance-count 3 \
-  --ec2-attributes KeyName=MYKEY --applications Name=Hive \
+  --ec2-attributes KeyName=<MYKEY> --applications Name=Hive \
   --bootstrap-actions Path=s3://support.elasticmapreduce/spark/install-spark
 ```
 EMR Ruby CLI:
@@ -66,7 +66,7 @@ _Currently works for Spark 1.x._  The history server will be reachable on the ma
 Using AWS CLI:
 ```
 aws emr create-cluster --name SparkCluster --ami-version 3.2 --instance-type m3.xlarge --instance-count 3 \
-  --ec2-attributes KeyName=MYKEY --applications Name=Hive \
+  --ec2-attributes KeyName=<MYKEY> --applications Name=Hive \
   --bootstrap-actions Path=s3://support.elasticmapreduce/spark/install-spark  \
   --steps Name=SparkHistoryServer,Jar=s3://elasticmapreduce/libs/script-runner/script-runner.jar,Args=s3://support.elasticmapreduce/spark/start-history-server 
 ```
@@ -91,7 +91,7 @@ A key=value pair of configuration items to add or replace in spark-defaults.conf
 Using AWS CLI:
 ```
 aws emr create-cluster --name SparkCluster --ami-version 3.2 --instance-type m3.xlarge --instance-count 3 \
-  --ec2-attributes KeyName=MYKEY --applications Name=Hive \
+  --ec2-attributes KeyName=<MYKEY> --applications Name=Hive \
   --bootstrap-actions Path=s3://support.elasticmapreduce/spark/install-spark  \
   --steps Name=SparkHistoryServer,Jar=s3://elasticmapreduce/libs/script-runner/script-runner.jar,Args=s3://support.elasticmapreduce/spark/start-history-server Name=SparkConfigure,Jar=s3://elasticmapreduce/libs/script-runner/script-runner.jar,Args=[s3://support.elasticmapreduce/spark/configure-spark.bash,spark.default.parallelism=100,spark.locality.wait.rack=0]
 ```
