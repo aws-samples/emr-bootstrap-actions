@@ -3,7 +3,7 @@ Quickstart Guide:
 
 1) To launch an EMR cluster with Elasticsearch, Kibana and Logstash installed, you can use the Amazon EMR CLI from the command line: (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-cli-install.html)
 
-./elastic-mapreduce --create --name TestElasticSearch --alive --key-pair your-key --ami-version 3.2.1 --num-instances 3 --instance-type m1.medium --bootstrap-action s3://your-bucket/elasticsearch_install.rb --bootstrap-name InstallElasticSearch --bootstrap-action s3://your-bucket/kibananginx_install.rb --bootstrap-name Installkibanaginx --bootstrap-action s3://your-bucket/logstash_install.rb --bootstrap-name Installlogstash
+./elastic-mapreduce --create --name TestElasticSearch --alive --ami-version 3.2.1 --num-instances 3 --instance-type m1.medium --bootstrap-action s3://support.elasticmapreduce/bootstrap-actions/other/elasticsearch_install.rb --bootstrap-name InstallElasticSearch --bootstrap-action s3://support.elasticmapreduce/bootstrap-actions/other/kibananginx_install.rb --bootstrap-name Installkibanaginx --bootstrap-action s3://support.elasticmapreduce/bootstrap-actions/other/logstash_install.rb --bootstrap-name Installlogstash
 
 
 2) To test Elasticsearch you can ssh into the master node: 
