@@ -30,41 +30,41 @@ Sample Commands:
 ================
 
 1. Default configuration:  
-aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3  \
---applications Name=hive   --ec2-attributes KeyName=[KEY_NAME] \
---instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge \
-InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge \
+aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3 
+--applications Name=hive   --ec2-attributes KeyName=[KEY_NAME] 
+--instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge
+InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge
 --bootstrap-action Name="install presto",Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb"
 
 2. Override Master and Worker Config:  
-aws emr  create-cluster --name="PRESTO-master-slave"  --ami-version=3.2.3   --applications Name=hive \ 
---ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge \
-InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge --bootstrap-action Name="install presto",\
-Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",\
-Args=["-m","s3://thaparp-samples/presto/use-cordinator.json","-w","s3://thaparp-samples/presto/ovverride-prop.json"]
+aws emr  create-cluster --name="PRESTO-master-slave"  --ami-version=3.2.3   --applications Name=hive 
+--ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge
+InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge --bootstrap-action Name="install presto",
+Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",
+Args=["-m","s3://path/to/master/config","-w","s3://path/to/worker/config"]
 
 3. Change the hive metastore port:  
-aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3 --applications Name=hive  \
---ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge \
-InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge  --bootstrap-action Name="install presto",\
-Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",\
-Args=["-m","s3://thaparp-samples/presto/use-cordinator.json","-w","s3://thaparp-samples/presto/ovverride-prop.json","-p","11235"]
+aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3 --applications Name=hive 
+--ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge 
+InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge  --bootstrap-action Name="install presto",
+Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",
+Args=["-m","s3://path/to/master/config","-w","s3://path/to/worker/config","-p","11235"]
 
 4. Provide your own presto server tarball path:  
-aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3  \
---applications Name=hive   --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge \
-InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge  --bootstrap-action Name="install presto",\
-Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",\
-Args=["-m","s3://thaparp-samples/presto/use-cordinator.json","-w","s3://thaparp-samples/presto/ovverride-prop.json","-p","11235","-s",\
+aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3  
+--applications Name=hive   --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge 
+InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge  --bootstrap-action Name="install presto",
+Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",
+Args=["-m","s3://path/to/master/config","-w","s3://path/to/worker/config","-p","11235","-s",
 "s3://thaparp-samples/presto/0.78-with-patches/presto-server-0.78.tar.gz"]
 
 5. Provide both server tarball and cli jar path:  
-aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3   --applications Name=hive   \
---ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge \
-InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge  --bootstrap-action Name="install presto",\
-Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",\
-Args=["-m","s3://thaparp-samples/presto/use-cordinator.json","-w","s3://thaparp-samples/presto/ovverride-prop.json",\
-"-p","11235","-s","s3://thaparp-samples/presto/0.78-with-patches/presto-server-0.78.tar.gz",\
+aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3   --applications Name=hive   
+--ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge 
+InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge  --bootstrap-action Name="install presto",
+Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",
+Args=["-m","s3://path/to/master/config","-w","s3://path/to/worker/config",
+"-p","11235","-s","s3://thaparp-samples/presto/0.78-with-patches/presto-server-0.78.tar.gz",
 "-c","s3://thaparp-samples/presto/0.78-with-patches/presto-cli-0.78-executable.jar"]
 
 
@@ -75,15 +75,15 @@ Presto can also use rds, but you will need to make sure you have an rds instance
 Steps are given below: 
 
 1. Create rds instance.  
-Example : aws rds create-db-instance --db-instance-identifier "thaparp-rds" --db-name "thaparpdb" --allocated-storage 5 --db-instance-class db.m1.xlarge \
---engine MySQL --master-username "root" --master-user-password "xyz12345"
+Example : aws rds create-db-instance --db-instance-identifier "presto-rds-test" --db-name "prestodb" --allocated-storage 5 --db-instance-class db.m1.xlarge 
+--engine MySQL --master-username "root" --master-user-password "your_password"
 
 2. Get the address for rds instance by "describe-db-instances".  
-Example: aws rds describe-db-instances  --db-instance-identifier "thaparp-rds-test" 
+Example: aws rds describe-db-instances  --db-instance-identifier "presto-rds-test" 
 Which would give you a json output, look for something similar to this : 
 "Endpoint": {
                 "Port": 3306, 
-                "Address": "thaparp-rds.cng7u3y2mvki.us-east-1.rds.amazonaws.com"
+                "Address": "presto-rds-test.cng7u3y2mvki.us-east-1.rds.amazonaws.com"
             }
 
 3. Use the above address in hive-site.xml  
@@ -91,14 +91,14 @@ Sample hive-site.xml is provided in the repository itself under presto/samples/h
 
 4. For running with rds, you will need to update hive-site.xml with the bootstrap action so that hive knows the metastore uri. 
 Sample command to launch presto cluster with rds :   
-aws emr  create-cluster --name="PRESTO-test"  --ami-version=3.2.3   --applications Name=hive   \
---ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge \
-InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge  --bootstrap-action Name="install presto",\
-Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",\
-Args=["-m","s3://thaparp-samples/presto/use-cordinator.json","-w","s3://thaparp-samples/presto/use-cordinator.json",\
-"-p","11235"] Name="install hive-site",Path="s3://us-east-1.elasticmapreduce/libs/hive/hive-script",\
-Args=["--base-path","s3://us-east-1.elasticmapreduce/libs/hive","--install-hive-site",\
-"--hive-site=s3://thaparp-samples/presto/hivesite/hive-site.xml","--hive-versions","latest"]
+aws emr  create-cluster --name="PRESTO-test"  --ami-version=3.2.3   --applications Name=hive   
+--ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge 
+InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge  --bootstrap-action Name="install presto",
+Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",
+Args=["-m","s3://path/to/master/config","-w","s3://path/to/worker/config",
+"-p","11235"] Name="install hive-site",Path="s3://us-east-1.elasticmapreduce/libs/hive/hive-script",
+Args=["--base-path","s3://us-east-1.elasticmapreduce/libs/hive","--install-hive-site",
+"--hive-site=s3://path/to/hivesite","--hive-versions","latest"]
 
 
 Presto Configuration:  
