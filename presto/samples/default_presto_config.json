@@ -2,7 +2,7 @@
     "etc/config.properties" : {
         "node-scheduler.include-coordinator"  : "false",
         "http-server.threads.max" : "500",
-        "task.max-memory" : "10GB",
+        "task.max-memory" : "5GB",
         "sink.max-buffer-size" : "1GB",
         "query.max-age" : "30m",
         "query.max-history" : "40",
@@ -19,7 +19,7 @@
         "jvm.options" : [
             "-verbose:class",
             "-server",
-            "-Xmx50G",
+            "-Xmx20G",
             "-Xmn5G",
             "-XX:+UseConcMarkSweepGC",
             "-XX:+ExplicitGCInvokesConcurrent",
