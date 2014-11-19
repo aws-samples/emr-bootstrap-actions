@@ -104,12 +104,13 @@ EMR has its own default configurations which are still in experimentation stage,
 but the users are free to override the default configuration with their config json file hosted on s3.
 
 Points to note about configs:    
-1. User just needs to override the properties that he/she may wish to change compared to default configuration.
-2. If a user does not want to change anything in a particular config file, then that file will be configured from the 
-   default configuration file.
-3. Any extra property mentioned by user apart from the ones mentioned in default configuration will be copied as 
-   it is to the respective presto configuration file on the cluster. 
 
+1. User just needs to override the properties that he/she may wish to change compared to default configuration. 
+2. If a user does not want to change anything in a particular config file, then that file will be configured from the 
+   default configuration file. 
+3. Any extra property mentioned by user apart from the ones mentioned in default configuration will be copied as 
+   it is to the respective presto configuration file on the cluster.  
+ 
 Default configuration json file is provided in the repository itself under presto/samples/default_presto_config.json
 
 NOTES: 
