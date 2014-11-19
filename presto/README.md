@@ -7,7 +7,8 @@ Currently presto is supported on EMR through a bootstrap action.
 Bootstrap Action Arguments:
 ==========================
 
-install_presto [OPTIONS]
+install_presto [OPTIONS] 
+
 Usage: install_presto [OPTIONS]
 
     -s [S3_PATH_TO_PRESTO_SERVER_BIN], --s3-path-to-presto-server-bin \n
