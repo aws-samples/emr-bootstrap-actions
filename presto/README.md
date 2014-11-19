@@ -115,7 +115,7 @@ Default configuration json file is provided in the repository itself under prest
 
 NOTES: 
 =====
-1. Please note that BA does not start metatsore, user has to run "hive set up" step to use presto since BA only 
+1. Please note that BA does not start metasore, user has to run "hive set up" step to use presto since BA only 
 changes the hive-init script to run metastore as a remote service. Thus only when user runs hive set up, 
 metastore will be started. 
 
@@ -133,6 +133,7 @@ metastore will be started.
    
 
 Add-ons with this bootstrap action: 
+
 1. The bootstrap action would configure service-nanny to monitor presto-server process.
 2. It would also configure the instance controller to upload the logs to node/$instance-id/apps/presto/
 3. Presto cli is installed only on the master. 
