@@ -67,7 +67,8 @@ Sample hive-site.xml is provided in the repository itself under presto/samples/h
 
 4. For running with rds, you will need to update hive-site.xml with the bootstrap action so that hive knows the metastore uri. 
 
-Sample command to launch presto cluster with rds :   
+Sample command to launch presto cluster with rds :
+
 aws emr  create-cluster --name="PRESTO-test"  --ami-version=3.2.3   --applications Name=hive --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge  --bootstrap-action Name="install presto",Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb",Args=["-m","s3://path/to/master/config","-w","s3://path/to/worker/config","-p","11235"] Name="install hive-site",Path="s3://us-east-1.elasticmapreduce/libs/hive/hive-script",Args=["--base-path","s3://us-east-1.elasticmapreduce/libs/hive","--install-hive-site","--hive-site=s3://path/to/hivesite","--hive-versions","latest"]
 
 
