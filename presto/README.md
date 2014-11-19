@@ -1,26 +1,29 @@
 Currently presto is supported on EMR through a bootstrap action. (s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb) 
 
 Bootstrap Action Arguments:
+==========================
 
 install_presto [OPTIONS]
 Usage: install_presto [OPTIONS]
-    -s [S3_PATH_TO_PRESTO_SERVER_BIN], --s3-path-to-presto-server-bin
-                                     Ex : s3://path/to/bin/presto-server-[version_number].tar.gz
-    -c [S3_PATH_TO_PRESTO_CLI],  --s3-path-to-presto-cli
-                                     Ex : s3://path/to/bin/presto-cli-executible-[version_number].jar
-    -m [S3_PATH_TO_MASTER_CONFIG], --s3-path-to-master-config  
-                                     Ex : s3://path/to/config/dir/master.config
-    -w [S3_PATH_TO_WORKER_CONFIG],  --s3-path-to-worker-config  
-                                     EX : s3://path/to/config/dir/worker.config
-    -p [HIVE_METASTORE_PORT],  --hive-metastore-port   
-                                     EX: 11235 (Defaults to 9083)
-    -h, --help                       Display this message
+
+    -s [S3_PATH_TO_PRESTO_SERVER_BIN], --s3-path-to-presto-server-bin \n
+                                     Ex : s3://path/to/bin/presto-server-[version_number].tar.gz 
+    -c [S3_PATH_TO_PRESTO_CLI],  --s3-path-to-presto-cli 
+                                     Ex : s3://path/to/bin/presto-cli-executible-[version_number].jar 
+    -m [S3_PATH_TO_MASTER_CONFIG], --s3-path-to-master-config   
+                                     Ex : s3://path/to/config/dir/master.config 
+    -w [S3_PATH_TO_WORKER_CONFIG],  --s3-path-to-worker-config   
+                                     EX : s3://path/to/config/dir/worker.config 
+    -p [HIVE_METASTORE_PORT],  --hive-metastore-port    
+                                     EX: 11235 (Defaults to 9083) 
+    -h, --help                       Display this message 
 
 Note that all arguments are optional.
 Default version used for now is 0.78
 
 
 Sample Commands:
+================
 
 1. Default configuration:  
 aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3  \
@@ -61,6 +64,8 @@ Args=["-m","s3://thaparp-samples/presto/use-cordinator.json","-w","s3://thaparp-
 "-c","s3://thaparp-samples/presto/0.78-with-patches/presto-cli-0.78-executable.jar"]
 
 
+Running with AWS RDS
+====================
 Presto can also use rds, but you will need to make sure you have an rds instance running. 
 
 Steps are given below: 
@@ -93,6 +98,7 @@ Args=["--base-path","s3://us-east-1.elasticmapreduce/libs/hive","--install-hive-
 
 
 Presto Configuration:  
+=====================
 The bootstrap action configures by reading properties from an s3 hosted json file. 
 EMR has its own default configurations which are still in experimentation stage, 
 but the users are free to override the default configuration with their config json file hosted on s3.
@@ -107,6 +113,7 @@ Points to note about configs:
 Default configuration json file is provided in the repository itself under presto/samples/default_presto_config.json
 
 NOTES: 
+=====
 1. Please note that BA does not start metatsore, user has to run "hive set up" step to use presto since BA only 
 changes the hive-init script to run metastore as a remote service. Thus only when user runs hive set up, 
 metastore will be started. 
