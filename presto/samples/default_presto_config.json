@@ -1,0 +1,52 @@
+{
+    "etc/config.properties" : {
+        "node-scheduler.include-coordinator"  : "false",
+        "http-server.threads.max" : "500",
+        "task.max-memory" : "5GB",
+        "sink.max-buffer-size" : "1GB",
+        "query.max-age" : "30m",
+        "query.max-history" : "40",
+        "discovery-server.enabled" : "true"
+    },
+    "etc/log.properties" : {
+        "com.facebook.presto" : "DEBUG"
+    },
+    "etc/node.properties" : {
+        "node.environment" : "production",
+        "node.data-dir" : "/mnt/var/log/presto"
+    },
+    "etc/jvm.config" : {
+        "jvm.options" : [
+            "-verbose:class",
+            "-server",
+            "-Xmx20G",
+            "-Xmn5G",
+            "-XX:+UseConcMarkSweepGC",
+            "-XX:+ExplicitGCInvokesConcurrent",
+            "-XX:+CMSClassUnloadingEnabled",
+            "-XX:+AggressiveOpts",
+            "-XX:+HeapDumpOnOutOfMemoryError",
+            "-XX:OnOutOfMemoryError=kill -9 %p",
+            "-XX:PermSize=150M",
+            "-XX:MaxPermSize=150M",
+            "-XX:ReservedCodeCacheSize=150M",
+            "-Xbootclasspath/p:/home/hadoop/presto-server/lib/floatingdecimal-0.1.jar",
+            "-Dhive.config.resources=/home/hadoop/conf/core-site.xml,/home/hadoop/conf/hdfs-site.xml"
+        ]
+    },
+    "etc/catalog/hive.properties" : {
+        "connector.name" : "hive-hadoop2",
+        "hive.metastore-cache-ttl" : "20m",
+        "hive.metastore-refresh-interval" : "1m",
+        "hive.s3.staging-directory" : "/mnt/tmp/",
+        "hive.s3.max-client-retries" :"50",
+        "hive.s3.max-error-retries " : "50",
+        "hive.s3.max-connections" : "500",
+        "hive.s3.connect-timeout" : "2m",
+        "hive.s3.socket-timeout" : "2m",
+        "hive.s3.max-backoff-time" : "10m"
+    },
+    "etc/catalog/jmx.properties" : {
+        "connector.name" : "jmx"
+    }
+}
