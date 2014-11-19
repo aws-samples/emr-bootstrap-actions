@@ -132,8 +132,8 @@ metastore will be started.
    i.e. 9083 
    
 
-Add-ons with this bootstrap action: 
-
+Add-ons with this bootstrap action:
+===================================
 1. The bootstrap action would configure service-nanny to monitor presto-server process.
 2. It would also configure the instance controller to upload the logs to node/$instance-id/apps/presto/
 3. Presto cli is installed only on the master. 
