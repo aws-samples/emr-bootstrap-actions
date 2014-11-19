@@ -114,5 +114,52 @@ Add-ons with the  bootstrap action:
 3. Presto cli is installed only on the master. 
 
 
+Sample Usage
+============
+
+* Launch a cluster with presto BA and run hive set up step.
+
+Example: aws emr  create-cluster --name="PRESTO-default"  --ami-version=3.2.3 --applications Name=hive   --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge --bootstrap-action Name="install presto",Path="s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb" 
+
+* ssh into master node.
+
+Example: aws emr ssh --cluster-id [JOBFLOW_ID] --key-pair [PATH/TO/KEYPAIR/FILE]
+
+* Launch hive cli. 
+
+Example:  [hadoop@ip-10-169-128-182 ~]$ hive
+hive> 
+
+* Create a table on hive 
+
+Example: 
+DROP TABLE IF EXISTS apachelog;
+CREATE EXTERNAL TABLE apachelog (
+host STRING,
+ IDENTITY STRING,
+ USER STRING,
+ TIME STRING,
+request STRING,
+ STATUS STRING,
+ SIZE STRING,
+ referrer STRING,
+ agent STRING
+)
+PARTITIONED BY(iteration_no int)
+LOCATION 's3://publicprestodemodata/apachelogsample/hive';
+
+* Recover Partitions by running repair table command.
+
+Example: 
+hive> msck repair table apachelog;
+
+* Launch presto cli (on the master)
+
+Example: ./presto --server localhost:8080 --catalog hive --schema default
+
+* Run Queries on presto.
+
+Example:  select * from apachelog where iteration_no=101 limit 10;
+
 
 
