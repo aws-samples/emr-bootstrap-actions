@@ -36,6 +36,16 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
  * Spark 1.1.0.d (kinesis jars added to lib, added JavaKinesisWordCountASLYARN example which uses yarn-cluster for master) 
  * Spark 1.1.0.e (kinesis example sources added to examples dir, includes SPARK-3595 for correct S3 output handling)
  * Spark 1.1.0.f (install script change to work with EMR AMI 3.1.4, 3.2.3 and later)
+ * Spark 1.1.0.g (disables multipart upload for Hadoop output formats as workaround, Enables Pyspark support)
+ * Spark 1.1.0.h (same as "g", rebuilt with git repo)  [NOTE: Last version of 1.1.0 release ]
+
+ * Spark 1.1.1.a (Initial version of Spark's 1.1.1 release with select changes for working on EMR)
+
+
+* Experimental versions available -
+ * branch-1.1 ( "-v 1.1 -b <buildId>")
+  * 2014112801 (includes SPARK-2848)
+
 
 
 #### Example:
