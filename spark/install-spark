@@ -15,14 +15,28 @@ set -x -e
 # Hadoop 2.2.0, AMI 3.0.x
 #   Spark 1.0.0
 #
-# Hadoop 2.4.0, AMI 3.1.x, AMI 3.2.x
+# Hadoop 2.4.0, AMI 3.1.x, AMI 3.2.x, AMI 3.3.x
 #   Spark 1.0.2
-#   Spark 1.1.0
+#
+#   Spark 1.1.0   
+#
 #   Spark 1.1.0.b (httpclient 4.2.5 for aws sdk s3 integration)
 #   Spark 1.1.0.c (kinesis examples, spark-submit deploy mode default to cluster, sql hive depenency fix)
 #   Spark 1.1.0.d (kinesis jars added to lib, added JavaKinesisWordCountASLYARN example using YARN)
 #   Spark 1.1.0.e (kinesis example sources added to examples dir, includes SPARK-3595 for correct S3 output handling)
 #   Spark 1.1.0.f (install script change to support EMR AMI versions 3.2.3, 3.1.4 and later)
+#   Spark 1.1.0.g (disables multipart upload for Hadoop output formats as workaround, Enables Pyspark support)
+#   Spark 1.1.0.h (same as "g", rebuilt with git repo)  [NOTE: Last version of 1.1.0 release ]
+#
+#   Spark 1.1.1.a (Initial version of Spark's 1.1.1 release with select changes for working on EMR)
+#
+#
+# Experimental versions available - 
+#   branch-1.1 ( "-v 1.1 -b <buildId>")
+#     2014112801 (includes SPARK-2848)
+#       
+#
+#   
 #
 #-----------------------------------------------------
 #
@@ -38,12 +52,19 @@ SPARK_110c=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-
 SPARK_110d=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.d.py
 SPARK_110e=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.e.py
 SPARK_110f=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.f.py
+SPARK_110g=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.g.py
+SPARK_110h=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.h.py
+
+SPARK_111a=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.a.py
+
+SPARK_11x=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1/install-spark-1.1.py
+SPARK_11x_build=2014112801
 
 GANGLIASCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/install-ganglia-metrics
 INSTALLGANGLIA=0
 
 REQUESTED_VERSION="(not specified)"
-while getopts "v:g" opt; do
+while getopts "v:gb:" opt; do
   case $opt in
     v)
       REQUESTED_VERSION=$OPTARG
@@ -51,6 +72,8 @@ while getopts "v:g" opt; do
     g)
       INSTALLGANGLIA=1
       ;;
+    b)
+      SPARK_11x_build=$OPTARG
   esac
 done
 
@@ -73,7 +96,7 @@ then
 
 elif [ "$HADOOP_VERSION" == "2.4.0" ] 
 then
-	echo "Available Spark versions: 1.0.2, 1.1.0, 1.1.0.b, 1.1.0.c, 1.1.0.d, 1.1.0.e, 1.1.0.f"
+	echo "Available Spark versions: 1.0.2, 1.1.0, 1.1.0.b, 1.1.0.c, 1.1.0.d, 1.1.0.e, 1.1.0.f, 1.1.0.g, 1.1.0.h, 1.1.1.a"
 
 else
 	echo "Unknown hadoop version, unable to install"
@@ -83,11 +106,11 @@ fi
 #== At this time only Hadoop 2.4.0 EMR supports multiple Spark versions...check for good selection
 if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" == "(not specified)" ] 
 then
-	echo "No Spark version specified, selecting Spark 1.1.0.f"
-	REQUESTED_VERSION="1.1.0.f"
+	echo "No Spark version specified, selecting Spark 1.1.1.a"
+	REQUESTED_VERSION="1.1.1.a"
 fi
 
-if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" != "1.0.2" ] && [ "$REQUESTED_VERSION" != "1.1.0" ] && [ "$REQUESTED_VERSION" != "1.1.0.b" ] && [ "$REQUESTED_VERSION" != "1.1.0.c" ] && [ "$REQUESTED_VERSION" != "1.1.0.d" ] && [ "$REQUESTED_VERSION" != "1.1.0.e" ] && [ "$REQUESTED_VERSION" != "1.1.0.f" ]
+if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" != "1.0.2" ] && [ "$REQUESTED_VERSION" != "1.1.0" ] && [ "$REQUESTED_VERSION" != "1.1.0.b" ] && [ "$REQUESTED_VERSION" != "1.1.0.c" ] && [ "$REQUESTED_VERSION" != "1.1.0.d" ] && [ "$REQUESTED_VERSION" != "1.1.0.e" ] && [ "$REQUESTED_VERSION" != "1.1.0.f" ] && [ "$REQUESTED_VERSION" != "1.1.0.g" ] && [ "$REQUESTED_VERSION" != "1.1.0.h" ] && [ "$REQUESTED_VERSION" != "1.1.1.a" ] && [ "$REQUESTED_VERSION" != "1.1" ]
 then
 	echo "Unknown Spark version requested given available Spark versions for this Hadoop version"
 	exit 1
@@ -134,6 +157,22 @@ elif [ "$REQUESTED_VERSION" == "1.1.0.f" ]
 then
         wget -O install-spark-script $SPARK_110f
         python install-spark-script BA
+elif [ "$REQUESTED_VERSION" == "1.1.0.g" ]
+then
+        wget -O install-spark-script $SPARK_110g
+        python install-spark-script BA
+elif [ "$REQUESTED_VERSION" == "1.1.0.h" ]
+then
+        wget -O install-spark-script $SPARK_11h
+        python install-spark-script BA
+elif [ "$REQUESTED_VERSION" == "1.1.1.a" ]
+then
+        wget -O install-spark-script $SPARK_111a
+        python install-spark-script BA
+elif [ "$REQUESTED_VERSION" == "1.1" ]
+then
+        wget -O install-spark-script $SPARK_11x
+        python install-spark-script $SPARK_11x_build
 else
 	echo "Unknown requested Spark version, $REQUESTED_VERSION"
 	exit 1
