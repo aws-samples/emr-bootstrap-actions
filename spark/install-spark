@@ -41,6 +41,13 @@ set -x -e
 #-----------------------------------------------------
 #
 HADOOP_VERSION=`grep /mnt/var/lib/info/job-flow.json  -e hadoopVersion | cut -d ':' -f2 | cut -d'"' -f2`
+AMI_VERSION=$(grep /mnt/var/lib/info/job-flow-state.txt -e amiVersion | cut -d'"' -f2)
+
+#Process AMI version
+OIFS="$IFS"
+IFS='.'
+read -a AMI_VERSION_ARRAY <<< "${AMI_VERSION}"
+IFS="$OIFS"
 
 SPARK_081=http://elasticmapreduce.s3.amazonaws.com/samples/spark/0.8.1/install-spark-shark.sh
 #SPARK_100=http://elasticmapreduce.s3.amazonaws.com/samples/spark/1.0.0/install-spark-shark-yarn.rb
@@ -54,6 +61,7 @@ SPARK_110e=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-
 SPARK_110f=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.f.py
 SPARK_110g=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.g.py
 SPARK_110h=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.h.py
+SPARK_110h_before323=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.h.before323.py
 
 SPARK_111a=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.a.py
 
@@ -163,7 +171,12 @@ then
         python install-spark-script BA
 elif [ "$REQUESTED_VERSION" == "1.1.0.h" ]
 then
-        wget -O install-spark-script $SPARK_11h
+	if [ "${AMI_VERSION_ARRAY[1]}" == "2" ] && [ "${AMI_VERSION_ARRAY[2]}" -lt 3 ]
+	then
+		wget -O install-spark-script $SPARK_110h_before323
+	else
+        	wget -O install-spark-script $SPARK_110h
+	fi
         python install-spark-script BA
 elif [ "$REQUESTED_VERSION" == "1.1.1.a" ]
 then
