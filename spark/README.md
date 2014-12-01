@@ -44,9 +44,9 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
  * Spark 1.1.1.a (Initial version of Spark's 1.1.1 release with select changes for working on EMR)
 
 
-* Experimental versions available -
- * branch-1.1 ( "-v 1.1 -b \<buildId\>")
-  * 2014112801 (includes SPARK-2848)
+#### Experimental versions available (designed to be ran with latest AMI available at time of build)
+* branch-1.1 ( "-v 1.1 -b \<buildId\>")
+ * 2014112801 (includes SPARK-2848)
 
 
 
