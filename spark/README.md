@@ -28,7 +28,7 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 * Hadoop 2.2.0 (AMI 3.0.x)
  * Spark 1.0.0 
  
-* Hadoop 2.4.0 (AMI 3.1.x and 3.2.x)
+* Hadoop 2.4.0 (AMI 3.1.x and 3.2.0-3.2.3)
  * Spark 1.0.2
  * Spark 1.1.0
  * Spark 1.1.0.b (built with httpclient 4.2.5 to fix version conflict with AWS SDK)
@@ -39,11 +39,13 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
  * Spark 1.1.0.g (disables multipart upload for Hadoop output formats as workaround, Enables Pyspark support)
  * Spark 1.1.0.h (same as "g", rebuilt with git repo)  [NOTE: Last version of 1.1.0 release ]
 
+
+* Hadoop 2.4.0 (AMI 3.3.x)
  * Spark 1.1.1.a (Initial version of Spark's 1.1.1 release with select changes for working on EMR)
 
 
 * Experimental versions available -
- * branch-1.1 ( "-v 1.1 -b <buildId>")
+ * branch-1.1 ( "-v 1.1 -b \<buildId\>")
   * 2014112801 (includes SPARK-2848)
 
 
