@@ -9,7 +9,7 @@ Bootstrap Action Arguments:
 Usage: install-tajo.sh [OPTIONS]
 
     -t [TAJO_BINARY_TARBALL_URL]
-       Ex : s3://[your_bucket]/[your_path]/tajo-{version}.tar.gz or http://apache.org/dyn/closer.cgi/tajo/tajo-{version}/tajo-{version}.tar.gz
+       Ex : s3://[your_bucket]/[your_path]/tajo-{version}.tar.gz or http://apache.tt.co.kr/tajo/tajo-{version}/tajo-{version}.tar.gz
     -c [TAJO_CONF_DIR_URL] 
        Ex : s3://[your_bucket]/[your_path]/conf
     -l [TAJO_THIRD_PARTY_LIB_DIR_URL]
