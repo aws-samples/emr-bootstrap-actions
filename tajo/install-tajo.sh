@@ -73,7 +73,7 @@ function download() {
    else
       if [ `expr "$1" : http` -gt 0 ]
       then
-         wget -P $2 $1
+         curl -o $2 $1
       else
          $HADOOP_HOME/bin/hadoop dfs -copyToLocal $1 $2
       fi

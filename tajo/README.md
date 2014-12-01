@@ -1,72 +1,82 @@
 Running Tajo on EMR:
 ======================
-Tajo is supported on EMR through a bootstrap action. 
-* s3 path : s3://
+Currently Tajo is supported on EMR through a bootstrap action.
+
+* s3 path : s3://tajo-emr/install-tajo.sh
 
 Bootstrap Action Arguments:
 ==========================
 
 Usage: install-tajo.sh [OPTIONS]
 
-    -t [TAJO_BINARY_TARBALL_URL]
-       Ex : s3://[your_bucket]/[your_path]/tajo-{version}.tar.gz or http://apache.tt.co.kr/tajo/tajo-{version}/tajo-{version}.tar.gz
-    -c [TAJO_CONF_DIR_URL] 
-       Ex : s3://[your_bucket]/[your_path]/conf
-    -l [TAJO_THIRD_PARTY_LIB_DIR_URL]
-       Ex : s3://[your_bucket]/[your_path]/lib
+    -t [S3_PATH_TO_TAJO_BIN_TARBALL]
+       Ex: s3://[your_bucket]/[your_path]/tajo-{version}.tar.gz
+       Default: http://d3kp3z3ppbkcio.cloudfront.net/tajo-0.9.0/tajo-0.9.0.tar.gz
+    -c [S3_PATH_TO_TAJO_CONF_DIR] 
+       Ex: s3://[your_bucket]/[your_path]/conf
+    -l [S3_PATH_TO_THIRD_PARTY_JARS_DIR]
+       Ex: s3://[your_bucket]/[your_path]/lib
     -h
        Display help message
-    -T [TEST_DIR]  
-       Ex: /[your_local_test_dir]
-    -H [TEST_HADOOP_HOME]
-       Ex: /[your_local_test_hadoop_home]
+    -T [LOCAL_PATH_TO_TEST_ROOT] (only used for local test)
+       Ex: /[LOCAL_PATH_TO_TEST_ROOT]
+    -H [LOCAL_PATH_TO_HADOOP_HOME_FOR_TEST] (only used for local test)
+       Ex: /[LOCAL_PATH_TO_HADOOP_HOME_FOR_TEST]
 
-위 모든 옵션은 선택사항이다. 특히 -T와 -H는 local pc에서 Test용으로 사용한다.
+Note that all arguments are optional. ``-T`` and ``-H`` are only for local test.
 
 
 Sample Commands:
 ================
 
-1. Default: 옵션이 전혀 없는 기본 설정이다. tajo_root_dir은 EMR의 HDFS를 사용한다.
+Launching a Tajo cluster with a default configurations
+-------------------------------------------------------
+ * It uses EMR HDFS as ```tajo.root``` which includes the warehouse directory
+ * It uses all default heap and concurrency configs.
+ * It is good for a simple test. 
+ 
+```
+$ aws emr create-cluster    \
+	--name="[CLUSTER_NAME]"  \
+	--ami-version=3.3        \
+	--ec2-attributes KeyName=[KEY_FIAR_NAME] \
+	--instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
+	--bootstrap-action Name="Install tajo",Path=s3://[your_bucket]/[your_path]/install-tajo.sh
+```
 
-    aws emr create-cluster --name="[CLUSTER_NAME]" --ami-version=3.3 --ec2-attributes KeyName=[KEY_FIAR_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge --bootstrap-action Name="Install tajo",Path=s3://[your_bucket]/[your_path]/install-tajo.sh
-
-2. Override Tajo Config and third party lib: -t, -c, -l을 사용한 설정이다. -c 는 Tajo 설정파일이 포함된 s3 디렉토리 경로로써 tajo_root_dir을 s3로 사용하려면 tajo-site.xml을 알맞게 수정하여 이 디렉토리에 넣어두어야 한다. -l은 외부 라이브러리를 Tajo가 사용하게 할 경우 이 라이브러리들 모아놓은 s3 디렉토리 경로로써 RDS(mysql)를 사용할 경우 mysql-connector.jar가 포함되어야 한다.   
-
-    aws emr create-cluster --name="[CLUSTER_NAME]" --ami-version=3.3 --ec2-attributes KeyName=[KEY_FIAR_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge --bootstrap-action Name="Install tajo",Path=s3://[your_bucket]/[your_path]/install-tajo.sh,Args=["-t","s3://[your_bucket]/tajo-0.9.0.tar.gz","-c","s3://[your_bucket]/conf","-l","s3://[your_bucket]/lib"]
+Launching a Tajo cluster with additional configurations
+-------------------------------------------------------
 
 
-Test:
-================
-install-tajo.sh 스크립트가 잘 작동하는지 Test하기 위한 설정은 -T, -H 옵션을 이용하는 것이다. 이것은 EMR이 아닌 자신의 local pc에서 동작한다. -T는 local에서 Test하기 위해 생성할 디렉토리 경로이다. 이 디렉토리에 hadoop,tajo가 설치될 것이다. -H는 local에 설치되어있는 hadoop_home이다. 테스트를 위해 이 hadoop_home을 복사할 것이다.
-    
-    ./install-EMR-tajo.sh -t /[your_local_binary_path]/tajo-0.9.0.tar.gz -T /[your_test_dir] -H /[your_test_hadoop_home] -c /[your_test_conf_dir]/conf -l /[your_test_lib_dir]/lib
+ * To use your Tajo tarball, you should use ```-t``` to specify S3 URL.
+ * To change ```tajo.rootdir```, you should make your own ```tajo-site.xml``` and use ```-c``` option to specify S3 URL for config dirs.
+   * You can find appropriate config templates in https://github.com/gruter/emr-bootstrap-actions/tree/tajo/tajo/template.
+ * To use RDS, you needs appropriate JDBC jars like mysql-connector.jar. ```-l``` option allows you to specify S3 directory URL, including third party Jars.
+
+ 
+```
+    aws emr create-cluster \
+    --name="[CLUSTER_NAME]" \
+    --ami-version=3.3 \
+    --ec2-attributes KeyName=[KEY_FIAR_NAME] \
+    --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
+    --bootstrap-action Name="Install tajo",Path=s3://[your_bucket]/[your_path]/install-tajo.sh,Args=["-t","s3://[your_bucket]/tajo-0.9.0.tar.gz","-c","s3://[your_bucket]/conf","-l","s3://[your_bucket]/lib"]
+```
+
+
+How to test bootstrap in local machine
+=======================================
+```install-tajo.sh``` allows users to test the bootstrap in local machine without EMR instances. For it, you need to use ```-T``` and ```-H``` options.
+ * ```-T``` - Testing root dir which is temporarily used for testing.
+ * ```-H``` - Hadoop binary directory which is used to pretended to be EMR Hadoop home
+
+```   
+$ ./install-EMR-tajo.sh -t /[your_local_binary_path]/tajo-0.9.0.tar.gz -c /[your_test_conf_dir]/conf -l /[your_test_lib_dir]/lib -T /[LOCAL_PATH_TO_TEST_ROOT] -H /[LOCAL_PATH_TO_HADOOP_HOME_FOR_TEST]
+```
 
 
 Running with AWS RDS
 ====================
-Tajo can also use RDS, but you will need to make sure you have an RDS instance running. And you will make tajo-catalog.xml.
-##I'm going to update this section.
-...
-...
-... 
+Tajo can use RDS. For it, you need to make sure you already have a running RDS instance. Then, you need to make your ```catalog-site.xml```. Please refer to [Catalog configuration documentation] (http://tajo.apache.org/docs/current/configuration/catalog_configuration.html) in Tajo doc.
 
-
-Tajo Configuration:  
-=====================
-Tajo 설정 파일은 인스턴스 타입별로 template를 제공한다.
-
-
-NOTES: 
-=====
-##I'm going to update this section.
-...시큐리티 그룹 
-...등등..
-
-
-Sample Usage
-============
-##I'm going to update this section.
-...tpc 테스트 
-...워크벤치 툴 
-...등등..
+Also, you should use ```-c``` option in order to use your custom ```catalog-site.xml``` file.
