@@ -10,8 +10,9 @@ Bootstrap Action Arguments:
 Usage: install-tajo.sh [OPTIONS]
 
     -t [S3_PATH_TO_TAJO_BIN_TARBALL]
-       Ex: s3://[your_bucket]/[your_path]/tajo-{version}.tar.gz
        Default: http://d3kp3z3ppbkcio.cloudfront.net/tajo-0.9.0/tajo-0.9.0.tar.gz
+       Ex: s3://[your_bucket]/[your_path]/tajo-{version}.tar.gz
+       Tajo nightly build tarball: http://s.apache.org/tajo-0.9.1-nightly
     -c [S3_PATH_TO_TAJO_CONF_DIR] 
        Ex: s3://[your_bucket]/[your_path]/conf
     -l [S3_PATH_TO_THIRD_PARTY_JARS_DIR]
@@ -23,7 +24,8 @@ Usage: install-tajo.sh [OPTIONS]
     -H [LOCAL_PATH_TO_HADOOP_HOME_FOR_TEST] (only used for local test)
        Ex: /[LOCAL_PATH_TO_HADOOP_HOME_FOR_TEST]
 
-Note that all arguments are optional. ``-T`` and ``-H`` are only for local test.
+ * Note that all arguments are optional. ``-T`` and ``-H`` are only used for local test.
+ * ```-t``` can fetch an archive file locate via S3 URL or HTTP URL.
 
 
 Sample Commands:
