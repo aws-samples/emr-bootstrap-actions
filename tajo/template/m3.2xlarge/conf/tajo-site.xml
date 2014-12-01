@@ -21,6 +21,6 @@
 
 <configuration>
 	<property><name>tajo.task.memory-slot-mb.default</name><value>512</value></property>
-	<property><name>tajo.worker.resource.memory-mb</name><value>13824</value></property>
-	<property><name>tajo.worker.resource.disks</name><value>13.0</value></property>
+	<property><name>tajo.worker.resource.memory-mb</name><value>4608</value></property>
+	<property><name>tajo.worker.resource.disks</name><value>4.0</value></property>
 </configuration>

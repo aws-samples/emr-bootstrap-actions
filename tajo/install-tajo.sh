@@ -58,7 +58,7 @@ function end_configuration() {
 
 ## Clean up
 function cleanup() {
-   echo "Info: Clean up..."
+   echo "Info: Clean up."
    rm -rf $1
 }
 
@@ -66,7 +66,7 @@ function cleanup() {
 # $1: srcPath
 # $2: destPath
 function download() {
-   echo "Info: Download package..."
+   echo "Info: Download package."
    if [ $TEST_MODE = "true" ]
    then
       cp -r $1 $2
@@ -84,14 +84,14 @@ function download() {
 # $1: destPath
 # $2: packagePath
 function unpack() {
-   echo "Info: Unpack..."
+   echo "Info: Unpack."
    cd $1
    tar -xvf $2
 }
 
 ## Setting tajo conf
 function set_tajo_conf() {
-   echo "Info: Setting tajo conf..."
+   echo "Info: Setting tajo conf."
    if [ ! -z $TAJO_CONF_URI ]
    then
       mkdir $TAJO_HOME/conf/temp
@@ -177,7 +177,7 @@ function create_start_invoke_file() {
 
 ## Initialize global variable
 function init() {
-   echo "Info: Initializing..."
+   echo "Info: Initializing."
    if [ $TEST_MODE = "true" ]
    then
       if [ -z $JAVA_HOME ]
