@@ -42,6 +42,7 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 
 * Hadoop 2.4.0 (AMI 3.3.x)
  * Spark 1.1.1.a (Initial version of Spark's 1.1.1 release with select changes for working on EMR)
+ * Spark 1.1.1.b (Include SPARK-3595 for EMR S3 output without temporary directory)
 
 
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
