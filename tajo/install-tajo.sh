@@ -21,22 +21,47 @@
 #
 # Arguments
 #
-# -t    The tajo binary Tarball URL.
-#       ex) s3://tajo-release/tajo-0.9.0/tajo-0.9.0.tar.gz 
+# -t, --tar    
+#		The tajo binary Tarball URL.(Optional)
+#
+#       ex) --tar http://d3kp3z3ppbkcio.cloudfront.net/tajo-0.9.0/tajo-0.9.0.tar.gz
 #       or 
-#       http://apache.claz.org/tajo/tajo-0.9.0/tajo-0.9.0.tar.gz
+#       --tar s3://tajo-release/tajo-0.9.0/tajo-0.9.0.tar.gz
 #
-# -c    The tajo conf directory URL.
-#       ex) s3://tajo-emr/tajo-0.9.0/ami-3.3.0/m1.medium/conf
+# -c, --conf
+#       The tajo conf directory URL.(Optional)
 #
-# -l    The tajo third party lib URL.
-#       ex) s3://tajo-emr/tajo-0.9.0/ami-3.3.0/m1.medium/lib
+#       ex) --conf s3://tajo-emr/tajo-0.9.0/template/c3.xlarge/conf
 #
-# -h    The help
+# -l, --lib
+#       The tajo third party lib URL.(Optional)
 #
-# -T	The Test directory path(Test mode)
+#       ex) --lib s3://{your_bucket}/{your_lib_dir}
+#       or
+#       --lib http://{lib_url}/{lib_file_name.jar}
 #
-# -H    The Test HADOOP_HOME(Test mode)
+# -h, --help
+#       The help
+#
+# -e, --env
+#       The item of tajo-env.sh(Optional, space delimiter)
+#
+#       ex) --tajo-env.sh "TAJO_PID_DIR=/home/hadoop/tajo/pids TAJO_WORKER_HEAPSIZE=1024"
+#
+# -s, --site
+#       The item of tajo-site.xml(Optional, space delimiter)
+#
+#       ex) --tajo-site.xml "tajo.rootdir=s3://mybucket/tajo tajo.worker.start.cleanup=true tajo.catalog.store.class=org.apache.tajo.catalog.store.MySQLStore"
+#
+# -T, --test-home
+#       The Test directory path(Only test)
+#
+#       ex) --test-home "/home/hadoop/bootstrap_test"
+#
+# -H, --test-hadoop-home
+#       The Test HADOOP_HOME(Only test)
+#
+#       ex) --test-hadoop-home "/home/hadoop"
 #
 
 ## setting header for xml
@@ -73,7 +98,7 @@ function download() {
    else
       if [ `expr "$1" : http` -gt 0 ]
       then
-         curl -o $2 $1
+         curl -o $2/`basename $1` $1
       else
          $HADOOP_HOME/bin/hadoop dfs -copyToLocal $1 $2
       fi
@@ -103,13 +128,21 @@ function set_tajo_conf() {
          $HADOOP_HOME/bin/hadoop dfs -copyToLocal ${TAJO_CONF_URI}/* $TAJO_HOME/conf/temp 
       fi
       mv $TAJO_HOME/conf/temp/* $TAJO_HOME/conf
-      chmod 755 $TAJO_HOME/conf/tajo-env.sh
+      chmod +x $TAJO_HOME/conf/tajo-env.sh
       rm -rf $TAJO_HOME/conf/temp
    fi
    echo "" >> $TAJO_HOME/conf/tajo-env.sh
    echo 'export TAJO_CLASSPATH="$TAJO_CLASSPATH:/usr/share/aws/emr/emrfs/lib/*:/usr/share/aws/emr/lib/*"' >> $TAJO_HOME/conf/tajo-env.sh
    echo "export JAVA_HOME=$JAVA_HOME" >> $TAJO_HOME/conf/tajo-env.sh
    echo "export HADOOP_HOME=$HADOOP_HOME" >> $TAJO_HOME/conf/tajo-env.sh
+   # using --env option
+   if [ ! -z "$TAJO_ENV" ]
+   then
+      for property in $(echo "$TAJO_ENV" | tr " " "\n")
+      do
+         echo "export $property" >> $TAJO_HOME/conf/tajo-env.sh
+      done
+   fi
    if [ -f "${TAJO_HOME}/conf/tajo-site.xml" ] 
    then
       sed -e 's:</configuration>::g' $TAJO_HOME/conf/tajo-site.xml > $TAJO_HOME/conf/tajo-site.xml.tmp
@@ -121,7 +154,16 @@ function set_tajo_conf() {
    echo $(set_property "tajo.master.client-rpc.address" "${TAJO_MASTER}:26002") >> ${TAJO_HOME}/conf/tajo-site.xml
    echo $(set_property "tajo.resource-tracker.rpc.address" "${TAJO_MASTER}:26003") >> ${TAJO_HOME}/conf/tajo-site.xml
    echo $(set_property "tajo.catalog.client-rpc.address" "${TAJO_MASTER}:26005") >> ${TAJO_HOME}/conf/tajo-site.xml
-   
+   # using --site option
+   if [ ! -z "$TAJO_SITE" ]
+   then
+      for property in $(echo "$TAJO_SITE" | tr " " "\n")
+      do
+         name=`echo "$property" | awk -F "\"*=\"*" '{print $1}'`
+         value=`echo "$property" | awk -F "\"*=\"*" '{print $2}'`
+         echo $(set_property "$name" "$value") >> ${TAJO_HOME}/conf/tajo-site.xml
+      done
+   fi
    # Default rootdir is EMR hdfs
    if [ -z `grep tajo.rootdir ${TAJO_HOME}/conf/tajo-site.xml` ]
    then
@@ -133,7 +175,7 @@ function set_tajo_conf() {
 
 ## Download Third party Library
 function third_party_lib() {
-   echo "Info: Download Third party Library..."
+   echo "Info: Download Third party Library."
    if [ ! -z $LIBRARY_URI ]
    then
       # Test mode
@@ -143,7 +185,7 @@ function third_party_lib() {
       else
          if [ `expr "$LIBRARY_URI" : http` -gt 0 ]
          then
-            wget -P ${TAJO_HOME}/lib $LIBRARY_URI
+            curl -o ${TAJO_HOME}/lib/`basename $LIBRARY_URI` $LIBRARY_URI
          else
             $HADOOP_HOME/bin/hadoop dfs -copyToLocal ${LIBRARY_URI}/* ${TAJO_HOME}/lib
          fi
@@ -172,7 +214,7 @@ function create_start_invoke_file() {
    echo "   done" >> ${TAJO_HOME}/$1
    echo "   ${TAJO_HOME}/bin/tajo-daemon.sh start worker" >> ${TAJO_HOME}/$1
    echo "fi" >> ${TAJO_HOME}/$1
-   chmod 755 ${TAJO_HOME}/$1
+   chmod +x ${TAJO_HOME}/$1
 }
 
 ## Initialize global variable
@@ -215,13 +257,34 @@ function init() {
 
 ## Print Help
 function help() {
-   echo 'usage : install-tajo.sh [-t] [-c] [-l] [-h] [-T] [-H]'
-   echo '-t : The tajo binary Tarball URL.'
-   echo '-c : The tajo conf directory URL.'
-   echo '-l : The tajo third party lib URL.'
-   echo '-h : The help.'
-   echo '-T : The Test directory path(Test mode)'
-   echo '-H : The Test HADOOP_HOME(Test mode)'
+   echo 'usage : install-tajo.sh [-t|--tar] [-c|--conf] [-l|--lib] [-h|--help] [-e|--env] [-s|--site] [-T|--test-home] [-H|--test-hadoop-home]'
+   echo ' -t, --tar'    
+   echo '       The tajo binary Tarball URL.(Optional)'
+   echo '       ex) --tar http://d3kp3z3ppbkcio.cloudfront.net/tajo-0.9.0/tajo-0.9.0.tar.gz'
+   echo '       or' 
+   echo '       --tar s3://tajo-release/tajo-0.9.0/tajo-0.9.0.tar.gz'
+   echo ' -c, --conf'
+   echo '       The tajo conf directory URL.(Optional)'
+   echo '       ex) --conf s3://tajo-emr/tajo-0.9.0/template/c3.xlarge/conf'
+   echo ' -l, --lib'
+   echo '       The tajo third party lib URL.(Optional)'
+   echo '       ex) --lib s3://{your_bucket}/{your_lib_dir}'
+   echo '       or'
+   echo '       --lib http://{lib_url}/{lib_file_name.jar}'
+   echo ' -h, --help'
+   echo '       The help'
+   echo ' -e, --env'
+   echo '       The item of tajo-env.sh(Optional, space delimiter)'
+   echo '       ex) --tajo-env.sh "TAJO_PID_DIR=/home/hadoop/tajo/pids TAJO_WORKER_HEAPSIZE=1024"'
+   echo ' -s, --site'
+   echo '       The item of tajo-site.xml(Optional, space delimiter)'
+   echo '       ex) --tajo-site.xml "tajo.rootdir=s3://mybucket/tajo tajo.worker.start.cleanup=true tajo.catalog.store.class=org.apache.tajo.catalog.store.MySQLStore"'
+   echo ' -T, --test-home'
+   echo '       The Test directory path(Only test)'
+   echo '       ex) --test-home "/home/hadoop/bootstrap_test"'
+   echo ' -H, --test-hadoop-home'
+   echo '       The Test HADOOP_HOME(Only test)'
+   echo '       ex) --test-hadoop-home "/home/hadoop"'
 }
 
 ## Global variable
@@ -236,20 +299,55 @@ TEST_MODE="false"
 TEST_DIR=
 TEST_HADOOP_HOME=
 TAJO_MASTER=
+TAJO_ENV=
+TAJO_SITE=
 
 ## Main
 # Get Arguments
-while getopts ":t::c::l::T::H:h" opt;
+while [ $# -gt 0 ]
 do
-   case $opt in
-   t) TAJO_PACKAGE_URI=$OPTARG;;
-   c) TAJO_CONF_URI=$OPTARG;;
-   l) LIBRARY_URI=$OPTARG;;
-   h) help; exit 0 ;;
-   T) TEST_MODE=true; TEST_DIR=$OPTARG;;
-   H) TEST_HADOOP_HOME=$OPTARG;;
-   esac
+  case "$1" in
+    -t)
+      shift; TAJO_PACKAGE_URI=$1;;
+    --tar)
+      shift; TAJO_PACKAGE_URI=$1;;
+    -c)
+      shift; TAJO_CONF_URI=$1;;
+    --conf)
+      shift; TAJO_CONF_URI=$1;;
+    -l)
+      shift; LIBRARY_URI=$1;;
+    --lib)
+      shift; LIBRARY_URI=$1;;
+    -h)
+      help; exit 0;;
+    --help)
+      help; exit 0;;
+    -e)
+      shift; TAJO_ENV=$1;;    
+    --env)
+      shift; TAJO_ENV=$1;;
+    -s)
+      shift; TAJO_SITE=$1;;   
+    --site)
+      shift; TAJO_SITE=$1;;
+    -T)
+      shift; TEST_MODE=true; TEST_DIR=$1;;
+    --test-home)
+      shift; TEST_MODE=true; TEST_DIR=$1;;
+    -H)
+      shift; TEST_HADOOP_HOME=$1;;
+    --test-hadoop-home)
+      shift; TEST_HADOOP_HOME=$1;;
+    -*)
+      echo "unrecognized option: $1"; exit 0;;
+    *)
+      break;
+      ;;
+  esac
+  shift
 done
+
 
 if [ $TEST_MODE = "true" ]
 then
@@ -272,7 +370,7 @@ set_tajo_conf
 
 third_party_lib
 
-echo "Info: Start Tajo..."
+echo "Info: Start Tajo."
 if [ $TEST_MODE = "true" ]
 then
    ${TAJO_HOME}/bin/tajo-daemon.sh start master
