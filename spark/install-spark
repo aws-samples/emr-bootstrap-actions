@@ -32,6 +32,7 @@ set -x -e
 #   Spark 1.1.1.a (Initial version of Spark's 1.1.1 release with select changes for working on EMR)
 #   Spark 1.1.1.b (Include SPARK-3595 for EMR S3 output without temporary directory)
 #   Spark 1.1.1.c (Change to hadoop-provided profile on build, Fix hive-site.xml support with hive-default.xml)
+#   Spark 1.1.1.d (Addition of JVM options for GC, Add Hbase and Kinesis client jars available to classpath)
 #
 #
 # Experimental versions available (designed to be ran with latest AMI available at time of build)
@@ -69,6 +70,7 @@ SPARK_110h_before323=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.
 SPARK_111a=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.a.py
 SPARK_111b=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.b.py
 SPARK_111c=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.c.py
+SPARK_111d=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.d.py
 
 SPARK_11x=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1/install-spark-1.1.py
 SPARK_11x_build=2014112801
@@ -109,7 +111,7 @@ then
 
 elif [ "$HADOOP_VERSION" == "2.4.0" ] 
 then
-	echo "Available Spark versions: 1.0.2, 1.1.0, 1.1.0.b, 1.1.0.c, 1.1.0.d, 1.1.0.e, 1.1.0.f, 1.1.0.g, 1.1.0.h, 1.1.1.a, 1.1.1.b, 1.1.1.c"
+	echo "Available Spark versions: 1.0.2, 1.1.0, 1.1.0.b, 1.1.0.c, 1.1.0.d, 1.1.0.e, 1.1.0.f, 1.1.0.g, 1.1.0.h, 1.1.1.a, 1.1.1.b, 1.1.1.c, 1.1.1.d"
 
 else
 	echo "Unknown hadoop version, unable to install"
@@ -119,8 +121,8 @@ fi
 #== At this time only Hadoop 2.4.0 EMR supports multiple Spark versions...check for good selection
 if [ "${AMI_VERSION_ARRAY[0]}" == "3" ] && [ "${AMI_VERSION_ARRAY[1]}" == "3" ] && [ "$REQUESTED_VERSION" == "(not specified)" ]
 then
-	echo "No Spark version specified, selecting Spark 1.1.1.c"
-	REQUESTED_VERSION="1.1.1.c"
+	echo "No Spark version specified, selecting Spark 1.1.1.d"
+	REQUESTED_VERSION="1.1.1.d"
 
 elif [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" == "(not specified)" ] 
 then
@@ -130,7 +132,7 @@ else
 	echo "Undefined version"
 fi
 
-if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" != "1.0.2" ] && [ "$REQUESTED_VERSION" != "1.1.0" ] && [ "$REQUESTED_VERSION" != "1.1.0.b" ] && [ "$REQUESTED_VERSION" != "1.1.0.c" ] && [ "$REQUESTED_VERSION" != "1.1.0.d" ] && [ "$REQUESTED_VERSION" != "1.1.0.e" ] && [ "$REQUESTED_VERSION" != "1.1.0.f" ] && [ "$REQUESTED_VERSION" != "1.1.0.g" ] && [ "$REQUESTED_VERSION" != "1.1.0.h" ] && [ "$REQUESTED_VERSION" != "1.1.1.a" ] && [ "$REQUESTED_VERSION" != "1.1" ]  && [ "$REQUESTED_VERSION" != "1.1.1.b" ] && [ "$REQUESTED_VERSION" != "1.1.1.c" ]
+if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" != "1.0.2" ] && [ "$REQUESTED_VERSION" != "1.1.0" ] && [ "$REQUESTED_VERSION" != "1.1.0.b" ] && [ "$REQUESTED_VERSION" != "1.1.0.c" ] && [ "$REQUESTED_VERSION" != "1.1.0.d" ] && [ "$REQUESTED_VERSION" != "1.1.0.e" ] && [ "$REQUESTED_VERSION" != "1.1.0.f" ] && [ "$REQUESTED_VERSION" != "1.1.0.g" ] && [ "$REQUESTED_VERSION" != "1.1.0.h" ] && [ "$REQUESTED_VERSION" != "1.1.1.a" ] && [ "$REQUESTED_VERSION" != "1.1" ]  && [ "$REQUESTED_VERSION" != "1.1.1.b" ] && [ "$REQUESTED_VERSION" != "1.1.1.c" ] && [ "$REQUESTED_VERSION" != "1.1.1.d" ]
 then
 	echo "Unknown Spark version requested given available Spark versions for this Hadoop version"
 	exit 1
@@ -204,6 +206,10 @@ then
 elif [ "$REQUESTED_VERSION" == "1.1.1.c" ]
 then
         wget -O install-spark-script $SPARK_111c
+        python install-spark-script BA
+elif [ "$REQUESTED_VERSION" == "1.1.1.d" ]
+then
+        wget -O install-spark-script $SPARK_111d
         python install-spark-script BA
 elif [ "$REQUESTED_VERSION" == "1.1" ]
 then
