@@ -50,7 +50,8 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
 * branch-1.1 ( "-v 1.1 -b \<buildId\>")
  * 2014112801 (includes SPARK-2848)
-
+* branch-1.2 ( "-v 1.2 -b \<buildId\>")
+ * 2014120500
 
 
 #### Example:
