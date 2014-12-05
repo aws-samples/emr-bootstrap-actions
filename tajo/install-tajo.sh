@@ -22,16 +22,16 @@
 # Arguments
 #
 # -t, --tar    
-#		The tajo binary Tarball URL.(Optional)
+#       The tajo binary Tarball URL.(Optional)
 #
-#       ex) --tar http://d3kp3z3ppbkcio.cloudfront.net/tajo-0.9.0/tajo-0.9.0.tar.gz
+#       ex) --tar http://d3kp3z3ppbkcio.cloudfront.net/tajo-x.x.x/tajo-x.x.x.tar.gz
 #       or 
-#       --tar s3://tajo-release/tajo-0.9.0/tajo-0.9.0.tar.gz
+#       --tar s3://tajo-release/tajo-x.x.x/tajo-x.x.x.tar.gz
 #
 # -c, --conf
 #       The tajo conf directory URL.(Optional)
 #
-#       ex) --conf s3://tajo-emr/tajo-0.9.0/template/c3.xlarge/conf
+#       ex) --conf s3://tajo-emr/tajo-x.x.x/template/c3.xlarge/conf
 #
 # -l, --lib
 #       The tajo third party lib URL.(Optional)
@@ -39,6 +39,12 @@
 #       ex) --lib s3://{your_bucket}/{your_lib_dir}
 #       or
 #       --lib http://{lib_url}/{lib_file_name.jar}
+#
+# -v, --tajo-version
+#       The tajo release version.(Optional)
+#       Default: Apache tajo stable version.
+#
+#       ex) x.x.x
 #
 # -h, --help
 #       The help
@@ -154,6 +160,20 @@ function set_tajo_conf() {
    echo $(set_property "tajo.master.client-rpc.address" "${TAJO_MASTER}:26002") >> ${TAJO_HOME}/conf/tajo-site.xml
    echo $(set_property "tajo.resource-tracker.rpc.address" "${TAJO_MASTER}:26003") >> ${TAJO_HOME}/conf/tajo-site.xml
    echo $(set_property "tajo.catalog.client-rpc.address" "${TAJO_MASTER}:26005") >> ${TAJO_HOME}/conf/tajo-site.xml
+   # setting tmp_dir
+   if [ $TEST_MODE != "true" ]
+   then
+      tmpdirs=($(grep -i "dfs.name.dir<" $HADOOP_HOME/etc/hadoop/hdfs-site.xml | grep -oP '(?<=value>)[^<]+'))
+      for dir in $(echo "$tmpdirs" | tr "," "\n")
+      do
+         if [ -z $tmpdir ]; then
+            tmpdir="$dir"/tajo/tmp
+         else
+            tmpdir="$tmpdir,$dir"/tajo/tmp
+         fi
+      done
+      echo $(set_property "tajo.worker.tmpdir.locations" ${tmpdir}) >> ${TAJO_HOME}/conf/tajo-site.xml
+   fi
    # using --site option
    if [ ! -z "$TAJO_SITE" ]
    then
@@ -168,7 +188,12 @@ function set_tajo_conf() {
    if [ -z `grep tajo.rootdir ${TAJO_HOME}/conf/tajo-site.xml` ]
    then
       STORAGE=local
-      echo $(set_property "tajo.rootdir" "hdfs://${NAME_NODE}:9000/tajo") >> ${TAJO_HOME}/conf/tajo-site.xml
+      if [ $TEST_MODE = "true" ]
+      then
+         echo $(set_property "tajo.rootdir" "file:///${TAJO_HOME}/tajo") >> ${TAJO_HOME}/conf/tajo-site.xml
+      else
+         echo $(set_property "tajo.rootdir" "hdfs://${NAME_NODE}:${NAME_NODE_PORT}/tajo") >> ${TAJO_HOME}/conf/tajo-site.xml      	
+      fi
    fi
    echo $(end_configuration) >> ${TAJO_HOME}/conf/tajo-site.xml
 }
@@ -199,10 +224,10 @@ function create_start_invoke_file() {
    echo 'grep -Fq "\"isMaster\": true" /mnt/var/lib/info/instance.json' >> ${TAJO_HOME}/$1
    echo 'if [ $? -eq 0 ]; then' >> ${TAJO_HOME}/$1
    if [ $STORAGE = "local" ]; then
-   echo "   nc -z $NAME_NODE 9000" >> ${TAJO_HOME}/$1
+   echo "   nc -z $NAME_NODE $NAME_NODE_PORT" >> ${TAJO_HOME}/$1
    echo '   while [ $? -eq 1 ]; do' >> ${TAJO_HOME}/$1
    echo "      sleep 5" >> ${TAJO_HOME}/$1
-   echo "      nc -z $NAME_NODE 9000" >> ${TAJO_HOME}/$1
+   echo "      nc -z $NAME_NODE $NAME_NODE_PORT" >> ${TAJO_HOME}/$1
    echo "   done" >> ${TAJO_HOME}/$1
    fi
    echo "   ${TAJO_HOME}/bin/tajo-daemon.sh start master" >> ${TAJO_HOME}/$1
@@ -244,14 +269,14 @@ function init() {
       export HADOOP_HOME=$TEST_DIR/hadoop
       TAJO_MASTER="localhost"
    else
-      TAJO_MASTER=$(grep -i "yarn.resourcemanager.address<" ${HADOOP_HOME}/etc/hadoop/yarn-site.xml | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
+      TAJO_MASTER=$(grep -i "yarn.resourcemanager.address<" ${HADOOP_HOME}/etc/hadoop/yarn-site.xml | grep -oP '(?<=value>)[^:<]+')
       TEST_MODE="false"
    fi
    STORAGE=S3
    NAME_NODE=$TAJO_MASTER
    if [ -z $TAJO_PACKAGE_URI ]
    then
-      TAJO_PACKAGE_URI='http://d3kp3z3ppbkcio.cloudfront.net/tajo-0.9.0/tajo-0.9.0.tar.gz'
+      TAJO_PACKAGE_URI="http://d3kp3z3ppbkcio.cloudfront.net/tajo-$TAJO_VERION/tajo-$TAJO_VERION.tar.gz"
    fi
 }
 
@@ -260,17 +285,21 @@ function help() {
    echo 'usage : install-tajo.sh [-t|--tar] [-c|--conf] [-l|--lib] [-h|--help] [-e|--env] [-s|--site] [-T|--test-home] [-H|--test-hadoop-home]'
    echo ' -t, --tar'    
    echo '       The tajo binary Tarball URL.(Optional)'
-   echo '       ex) --tar http://d3kp3z3ppbkcio.cloudfront.net/tajo-0.9.0/tajo-0.9.0.tar.gz'
+   echo '       ex) --tar http://d3kp3z3ppbkcio.cloudfront.net/tajo-x.x.x/tajo-x.x.x.tar.gz'
    echo '       or' 
-   echo '       --tar s3://tajo-release/tajo-0.9.0/tajo-0.9.0.tar.gz'
+   echo '       --tar s3://tajo-release/tajo-x.x.x/tajo-x.x.x.tar.gz'
    echo ' -c, --conf'
    echo '       The tajo conf directory URL.(Optional)'
-   echo '       ex) --conf s3://tajo-emr/tajo-0.9.0/template/c3.xlarge/conf'
+   echo '       ex) --conf s3://tajo-emr/tajo-x.x.x/template/c3.xlarge/conf'
    echo ' -l, --lib'
    echo '       The tajo third party lib URL.(Optional)'
    echo '       ex) --lib s3://{your_bucket}/{your_lib_dir}'
    echo '       or'
    echo '       --lib http://{lib_url}/{lib_file_name.jar}'
+   echo ' -v, --tajo-version'
+   echo '       The tajo release version.(Optional)'
+   echo '       Default: Apache tajo stable version.'
+   echo '       ex) x.x.x'
    echo ' -h, --help'
    echo '       The help'
    echo ' -e, --env'
@@ -288,12 +317,14 @@ function help() {
 }
 
 ## Global variable
+TAJO_VERION=0.9.0
 TAJO_PACKAGE_URI=
 TAJO_CONF_URI=
 TAJO_HOME=
 LIBRARY_URI=
 STORAGE=
 NAME_NODE=
+NAME_NODE_PORT=9000
 START_INVOKE_FILE="start-emr-tajo.sh"
 TEST_MODE="false"
 TEST_DIR=
@@ -319,6 +350,10 @@ do
       shift; LIBRARY_URI=$1;;
     --lib)
       shift; LIBRARY_URI=$1;;
+    -v)
+      shift; TAJO_VERION=$1;;
+    --tajo-version)
+      shift; TAJO_VERION=$1;;
     -h)
       help; exit 0;;
     --help)
