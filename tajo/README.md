@@ -2,30 +2,46 @@ Running Tajo on EMR:
 ======================
 Currently Tajo is supported on EMR through a bootstrap action.
 
-* s3 path : s3://tajo-emr/install-tajo.sh
-
+* s3 path
+  * script: s3://tajo-emr/install-tajo.sh
+  * template: s3://tajo-emr/tajo-x.x.x/template
+   
 Bootstrap Action Arguments:
 ==========================
 
-Usage: install-tajo.sh [OPTIONS]
+Usage: install-tajo.sh [-t|--tar] [-c|--conf] [-l|--lib] [-h|--help] [-e|--env] [-s|--site] [-T|--test-home] [-H|--test-hadoop-home]
 
-    -t [S3_PATH_TO_TAJO_BIN_TARBALL]
+    -t, --tar [S3_PATH_TO_TAJO_BIN_TARBALL]
+       Tajo binary tarball URL.
        Default: http://d3kp3z3ppbkcio.cloudfront.net/tajo-0.9.0/tajo-0.9.0.tar.gz
-       Ex: s3://[your_bucket]/[your_path]/tajo-{version}.tar.gz
-       Tajo nightly build tarball: http://s.apache.org/tajo-0.9.1-nightly
-    -c [S3_PATH_TO_TAJO_CONF_DIR] 
-       Ex: s3://[your_bucket]/[your_path]/conf
-    -l [S3_PATH_TO_THIRD_PARTY_JARS_DIR]
-       Ex: s3://[your_bucket]/[your_path]/lib
-    -h
+       Ex: s3://[your_bucket]/[your_path]/tajo-{version}.tar.gz or http://s.apache.org/tajo-0.9.1-nightly
+    -c, --conf [S3_PATH_TO_TAJO_CONF_DIR] 
+       Tajo conf directory URL.
+       Ex: --conf s3://tajo-emr/tajo-x.x.x/template/c3.xlarge/conf
+    -l. --lib [S3_PATH_TO_THIRD_PARTY_JARS_DIR]
+       Tajo third party lib URL.
+       Ex: --lib s3://{your_bucket}/{your_lib_dir} or http://{lib_url}/{lib_file_name.jar}
+    -v, --tajo-version [INSTALL_TAJO_VERSION]
+       Default: Apache tajo stable version.
+       Ex: --tajo-version x.x.x
+    -h, --help
        Display help message
-    -T [LOCAL_PATH_TO_TEST_ROOT] (only used for local test)
+    -e, --env
+       Item of tajo-env.sh(space delimiter)
+       Ex: --env "TAJO_PID_DIR=/home/hadoop/tajo/pids TAJO_WORKER_HEAPSIZE=1024"
+    -s, --site
+       Item of tajo-site(space delimiter)
+       Ex: --site "tajo.rootdir=s3://mybucket/tajo tajo.worker.start.cleanup=true tajo.catalog.store.class=org.apache.tajo.catalog.store.MySQLStore"
+    -T, --test-hadoop-home [LOCAL_PATH_TO_TEST_ROOT] (only used for local test)
+       Local test directory path
        Ex: /[LOCAL_PATH_TO_TEST_ROOT]
-    -H [LOCAL_PATH_TO_HADOOP_HOME_FOR_TEST] (only used for local test)
+    -H, --test-hadoop-home [LOCAL_PATH_TO_HADOOP_HOME_FOR_TEST] (only used for local test)
+       Local test HADOOP_HOME
        Ex: /[LOCAL_PATH_TO_HADOOP_HOME_FOR_TEST]
 
  * Note that all arguments are optional. ``-T`` and ``-H`` are only used for local test.
  * ```-t``` can fetch an archive file locate via S3 URL or HTTP URL.
+ * ``-e`` and ``-s`` can configure a tajo-env.sh and tajo-site.xml.
 
 
 Sample Commands:
@@ -43,7 +59,7 @@ $ aws emr create-cluster    \
 	--ami-version=3.3        \
 	--ec2-attributes KeyName=[KEY_FIAR_NAME] \
 	--instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
-	--bootstrap-action Name="Install tajo",Path=s3://[your_bucket]/[your_path]/install-tajo.sh
+	--bootstrap-action Name="Install tajo",Path=s3://tajo-emr/install-tajo.sh
 ```
 
 Launching a Tajo cluster with additional configurations
@@ -62,7 +78,7 @@ Launching a Tajo cluster with additional configurations
     --ami-version=3.3 \
     --ec2-attributes KeyName=[KEY_FIAR_NAME] \
     --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
-    --bootstrap-action Name="Install tajo",Path=s3://[your_bucket]/[your_path]/install-tajo.sh,Args=["-t","s3://[your_bucket]/tajo-0.9.0.tar.gz","-c","s3://[your_bucket]/conf","-l","s3://[your_bucket]/lib"]
+    --bootstrap-action Name="Install tajo",Path=s3://tajo-emr/install-tajo.sh,Args=["-t","s3://[your_bucket]/tajo-0.9.0.tar.gz","-c","s3://[your_bucket]/conf","-l","s3://[your_bucket]/lib"]
 ```
 
 
@@ -79,6 +95,18 @@ $ ./install-EMR-tajo.sh -t /[your_local_binary_path]/tajo-0.9.0.tar.gz -c /[your
 
 Running with AWS RDS
 ====================
-Tajo can use RDS. For it, you need to make sure you already have a running RDS instance. Then, you need to make your ```catalog-site.xml```. Please refer to [Catalog configuration documentation] (http://tajo.apache.org/docs/current/configuration/catalog_configuration.html) in Tajo doc.
+Tajo can use RDS. For it, you need to make sure you already have a running RDS instance. 그리고 RDS정보를 ```-s``` 옵션으로 catalog 정보를 설정한다. 
 
-Also, you should use ```-c``` option in order to use your custom ```catalog-site.xml``` file.
+```
+    aws emr create-cluster \
+    --name="[CLUSTER_NAME]" \
+    --ami-version=3.3 \
+    --ec2-attributes KeyName=[KEY_FIAR_NAME] \
+    --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
+    --bootstrap-action Name="Install tajo",Path=s3://tajo-emr/install-tajo.sh,Args=["-t","s3://[your_bucket]/tajo-0.9.0.tar.gz","-c","s3://[your_bucket]/conf","-l", \
+    "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.28/mysql-connector-java-5.1.28.jar", \
+    "-s","tajo.catalog.store.class=org.apache.tajo.catalog.store.MySQLStore tajo.catalog.jdbc.connection.id={id} tajo.catalog.jdbc.connection.password={password} tajo.catalog.jdbc.uri=jdbc:mysql://{RDS_URL}:3306/tajo?createDatabaseIfNotExist=true"]
+```
+
+Please refer to [Catalog configuration documentation] (http://tajo.apache.org/docs/current/configuration/catalog_configuration.html) in Tajo doc.
+
