@@ -91,6 +91,16 @@ Terminating a Tajo cluster
     --cluster-ids "j-FC5DVH3RI6AA"
 ```
 
+Listing a instance of Tajo cluster
+-------------------------------------------------------
+
+* Launching 할때, 리턴되는 cluster id를 기억해두자.
+
+```
+    aws emr list-instances \
+    --cluster-ids "j-FC5DVH3RI6AA"
+```
+
 How to test bootstrap in local machine
 =======================================
 ```install-tajo.sh``` allows users to test the bootstrap in local machine without EMR instances. For it, you need to use ```-T``` and ```-H``` options.
