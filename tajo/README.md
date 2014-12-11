@@ -44,7 +44,7 @@ Usage: install-tajo.sh [-t|--tar] [-c|--conf] [-l|--lib] [-h|--help] [-e|--env] 
  * ``-e`` and ``-s`` can configure a tajo-env.sh and tajo-site.xml.
 
 
-Sample Commands:
+Run Commands:
 ================
 
 Launching a Tajo cluster with a default configurations
@@ -57,7 +57,7 @@ Launching a Tajo cluster with a default configurations
 $ aws emr create-cluster    \
 	--name="[CLUSTER_NAME]"  \
 	--ami-version=3.3        \
-	--ec2-attributes KeyName=[KEY_FIAR_NAME] \
+	--ec2-attributes KeyName=[KEY_PAIR_NAME] \
 	--instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
 	--bootstrap-action Name="Install tajo",Path=s3://tajo-emr/install-tajo.sh
 ```
@@ -76,11 +76,20 @@ Launching a Tajo cluster with additional configurations
     aws emr create-cluster \
     --name="[CLUSTER_NAME]" \
     --ami-version=3.3 \
-    --ec2-attributes KeyName=[KEY_FIAR_NAME] \
+    --ec2-attributes KeyName=[KEY_PAIR_NAME] \
     --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
     --bootstrap-action Name="Install tajo",Path=s3://tajo-emr/install-tajo.sh,Args=["-t","s3://[your_bucket]/tajo-0.9.0.tar.gz","-c","s3://[your_bucket]/conf","-l","s3://[your_bucket]/lib"]
 ```
 
+Terminating a Tajo cluster
+-------------------------------------------------------
+
+* Launching 할때, 리턴되는 cluster id를 기억해두자.
+
+```
+    aws emr terminate-clusters \
+    --cluster-ids "j-FC5DVH3RI6AA"
+```
 
 How to test bootstrap in local machine
 =======================================
@@ -101,7 +110,7 @@ Tajo can use RDS. For it, you need to make sure you already have a running RDS i
     aws emr create-cluster \
     --name="[CLUSTER_NAME]" \
     --ami-version=3.3 \
-    --ec2-attributes KeyName=[KEY_FIAR_NAME] \
+    --ec2-attributes KeyName=[KEY_PAIR_NAME] \
     --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
     --bootstrap-action Name="Install tajo",Path=s3://tajo-emr/install-tajo.sh,Args=["-t","s3://[your_bucket]/tajo-0.9.0.tar.gz","-c","s3://[your_bucket]/conf","-l", \
     "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.28/mysql-connector-java-5.1.28.jar", \
