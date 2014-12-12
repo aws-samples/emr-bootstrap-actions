@@ -16,7 +16,7 @@ hadoop_version = "2.4.0"
 s3_base = "s3://support.elasticmapreduce/spark/"
 
 # build some variables
-spark_archive = "spark-{0}.h.tgz".format(spark_version)
+spark_archive = "spark-{0}.h.before323.tgz".format(spark_version)
 scala_archive = "scala-{0}.tgz".format(scala_version)
 scala_url = "{0}/{1}/{2}".format(s3_base,spark_version,scala_archive)
 spark_url = "{0}/{1}/{2}".format(s3_base,spark_version,spark_archive)
@@ -40,7 +40,7 @@ def download_and_uncompress_files():
 	subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-get",spark_url, tmp_dir])
 	subprocess.check_call(["/bin/tar", "zxvf" , os.path.join(tmp_dir,spark_archive), "-C", hadoop_apps])
 	subprocess.check_call(["/bin/tar", "zxvf" , os.path.join(tmp_dir,scala_archive), "-C", hadoop_apps])
-	subprocess.check_call(["/bin/ln","-s",hadoop_apps+"/spark-" + spark_version +".h", spark_home])
+	subprocess.check_call(["/bin/ln","-s",hadoop_apps+"/spark-" + spark_version +".h.before323", spark_home])
 	# cleanup 
 	os.remove(os.path.join(tmp_dir,scala_archive))
 	os.remove(os.path.join(tmp_dir,spark_archive))
@@ -101,13 +101,6 @@ def config():
 		spark_env.write("export SPARK_CLASSPATH=\"{0}/emr/*:{1}/emrfs/*:{2}/share/hadoop/common/lib/*:{3}:/home/hadoop/hive/conf/*\"\n".format(spark_classpath,spark_classpath,hadoop_home,lzo_jar))
 
 	subprocess.check_call(["mv",spark_env_tmp_location,spark_env_final_location])
-
-	#create symlink to hive-site.xml, if does not exist copy hive-default.xml to hive-site.xml before making link
-	hivesitexml = "/home/hadoop/hive/conf/hive-site.xml"
-	if not os.path.isfile(hivesitexml) :
-		subprocess.check_call(["/bin/cp","/home/hadoop/hive/conf/hive-default.xml",hivesitexml])
-	subprocess.check_call(["/bin/ln","-s",hivesitexml,"/home/hadoop/spark/conf/hive-site.xml"])
-
 
 def start_history_server():
 	# create hdfs folder for event logs (actually not needed, it will fail if run as BA)
