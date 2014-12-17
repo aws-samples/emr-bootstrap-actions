@@ -2,6 +2,9 @@ Running Tajo on EMR:
 ======================
 Currently Tajo is supported on EMR through a bootstrap action.
 
+* Installing the AWS Command Line Interface
+  * link: http://docs.aws.amazon.com/cli/latest/userguide/installing.html
+
 * s3 path
   * script: s3://tajo-emr/install-tajo.sh
   * template: s3://tajo-emr/tajo-x.x.x/template
@@ -44,7 +47,7 @@ Usage: install-tajo.sh [-t|--tar] [-c|--conf] [-l|--lib] [-h|--help] [-e|--env] 
  * ``-e`` and ``-s`` can configure a tajo-env.sh and tajo-site.xml.
 
 
-Run Commands:
+Sample Commands:
 ================
 
 Launching a Tajo cluster with a default configurations
