@@ -1,0 +1,47 @@
+#!/bin/bash
+# Configures spark-default.conf for dedicate/maximum cluster use
+#   Set num executors to number of core nodes (spark.executor.instances)
+#   Set vcores per executor to be all the vcores for the instance type of the core nodes (spark.executor.cores)
+#   Set the memory per executor to the max available for the node (spark.executor.memory)
+#
+set -x
+#
+VCOREREFERENCE=http://support.elasticmapreduce.s3.amazonaws.com/spark/vcorereference.tsv
+CONFIGURESPARK=http://support.elasticmapreduce.s3.amazonaws.com/spark/configure-spark.bash
+#
+echo "Configuring Spark default configuration to the max memory and vcore setting given configured number of cores nodes at cluster creation"
+
+#Gather core node count
+NUM_CORE_NODES=$(grep /mnt/var/lib/info/job-flow.json -e "CORE" -A 4 | grep -e requestedInstanceCount | cut -d':' -f2 | sed  's/\s\+//g')
+
+if [ $NUM_CORE_NODES -lt 2 ]
+then
+	#set back to default to be safe
+	NUM_CORE_NODES=2
+fi
+
+CORE_INSTANCE_TYPE=$(grep /mnt/var/lib/info/job-flow.json -e "CORE" -A 4 | grep -e instanceType | cut -d'"' -f4 | sed  's/\s\+//g')
+
+if [ $CORE_INSTANCE_TYPE == "" ]
+then
+	CORE_INSTANCE_TYPE="m3.xlarge"
+fi
+
+wget $VCOREREFERENCE
+
+NUM_VCORES=$(grep vcorereference.tsv -e $CORE_INSTANCE_TYPE | cut -f2)
+
+MAX_YARN_MEMORY=$(grep /home/hadoop/conf/yarn-site.xml -e "yarn\.scheduler\.maximum-allocation-mb" | sed 's/.*<value>\(.*\).*<\/value>.*/\1/g')
+
+EXEC_MEMORY=$(expr $MAX_YARN_MEMORY - 1024)
+EXEC_MEMORY+="M"
+
+#--- Now use configure-spark.bash to set values
+
+wget $CONFIGURESPARK
+
+bash configure-spark.bash spark.executor.instances=$NUM_CORE_NODES spark.executor.cores=$NUM_VCORES spark.executor.memory=$EXEC_MEMORY
+
+
+
+exit 0
