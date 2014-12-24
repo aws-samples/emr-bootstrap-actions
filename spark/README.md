@@ -20,6 +20,9 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 -g   
    Installs Ganglia metrics configuration for Spark
 
+-x
+   Prepares the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes at time of cluster creation]
+
 
 #### Current versions available:
 * Hadoop 1.0.3 (AMI 2.x)
@@ -46,13 +49,17 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
  * Spark 1.1.1.c (Change to class path for hadoop-provided profile build, Fix to support hive-site.xml and hive-default.xml with spark-sql)
  * Spark 1.1.1.d (Addition of JVM options for GC, Add Hbase and Kinesis client jars available to classpath)
  * Spark 1.1.1.e (SparkSQL support for EMR S3 output without temporary directory)
+ * --
+ * Spark 1.2.0.a (Initial build of Spark's 1.2.0 release)
 
 
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
 * branch-1.1 ( "-v 1.1 -b \<buildId\>")
  * 2014112801 (includes SPARK-2848)
+ * 2014121700
 * branch-1.2 ( "-v 1.2 -b \<buildId\>")
  * 2014120500
+ * 2014121700
 
 
 #### Example:

@@ -5,7 +5,8 @@ set -x -e
 #
 # Arguments (optional):
 #   -v <version>      - Ability to select a specific Spark build version according to supported list
-#   -g		      - For Spark builds 1.1.0.c and later, enables metrics
+#   -g		      - For Spark builds 1.1.0.c and later, enables Ganglia metrics
+#   -x                - Sets the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes]
 #
 # Supported versions
 #
@@ -35,12 +36,18 @@ set -x -e
 #   Spark 1.1.1.d (Addition of JVM options for GC, Add Hbase and Kinesis client jars available to classpath)
 #   Spark 1.1.1.e (SparkSQL support for EMR S3 output without temporary directory)
 #
+# Hadoop 2.4.0 (AMI 3.3.x)
+#   Spark 1.2.0.a (Initial build of Spark's 1.2.0 release)
+#
 #
 # Experimental versions available (designed to be ran with latest AMI available at time of build)
 #   branch-1.1 ( "-v 1.1 -b <buildId>")
 #     2014112801 (includes SPARK-2848)
+#     2014121700
 #   branch-1.2 ( "-v 1.2 -b <buildId>")
 #     2014120500
+#     2014121100 (includes SparkSQL S3 write fix and multipart upload disabled workaround)
+#     2014121700
 #       
 #
 #   
@@ -75,6 +82,9 @@ SPARK_111b=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-
 SPARK_111c=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.c.py
 SPARK_111d=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.d.py
 SPARK_111e=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.e.py
+SPARK_111f=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.f.py
+
+SPARK_120a=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.2.0/install-spark-1.2.0.a.py
 
 SPARK_11x=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1/install-spark-1.1.py
 SPARK_build=2014112801
@@ -84,8 +94,11 @@ SPARK_12x=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.2/install-spa
 GANGLIASCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/install-ganglia-metrics
 INSTALLGANGLIA=0
 
+SPARK_MAX_SCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/maximize-spark-default-config
+SPARK_MAX=0
+
 REQUESTED_VERSION="(not specified)"
-while getopts "v:gb:" opt; do
+while getopts "v:gb:x" opt; do
   case $opt in
     v)
       REQUESTED_VERSION=$OPTARG
@@ -95,6 +108,10 @@ while getopts "v:gb:" opt; do
       ;;
     b)
       SPARK_build=$OPTARG
+      ;;
+    x)
+      SPARK_MAX=1
+      ;;
   esac
 done
 
@@ -117,7 +134,7 @@ then
 
 elif [ "$HADOOP_VERSION" == "2.4.0" ] 
 then
-	echo "Available Spark versions: 1.0.2, 1.1.0, 1.1.0.b, 1.1.0.c, 1.1.0.d, 1.1.0.e, 1.1.0.f, 1.1.0.g, 1.1.0.h, 1.1.1.a, 1.1.1.b, 1.1.1.c, 1.1.1.d, 1.1.1.e"
+	echo "Available Spark versions: 1.0.2, 1.1.0, 1.1.0.b, 1.1.0.c, 1.1.0.d, 1.1.0.e, 1.1.0.f, 1.1.0.g, 1.1.0.h, 1.1.1.a, 1.1.1.b, 1.1.1.c, 1.1.1.d, 1.1.1.e, 1.2.0.a"
 
 else
 	echo "Unknown hadoop version, unable to install"
@@ -127,8 +144,8 @@ fi
 #== At this time only Hadoop 2.4.0 EMR supports multiple Spark versions...check for good selection
 if [ "${AMI_VERSION_ARRAY[0]}" == "3" ] && [ "${AMI_VERSION_ARRAY[1]}" == "3" ] && [ "$REQUESTED_VERSION" == "(not specified)" ]
 then
-	echo "No Spark version specified, selecting Spark 1.1.1.e"
-	REQUESTED_VERSION="1.1.1.e"
+	echo "No Spark version specified, selecting Spark 1.2.0.a"
+	REQUESTED_VERSION="1.2.0.a"
 
 elif [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" == "(not specified)" ] 
 then
@@ -138,7 +155,7 @@ else
 	echo "Undefined version"
 fi
 
-if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" != "1.0.2" ] && [ "$REQUESTED_VERSION" != "1.1.0" ] && [ "$REQUESTED_VERSION" != "1.1.0.b" ] && [ "$REQUESTED_VERSION" != "1.1.0.c" ] && [ "$REQUESTED_VERSION" != "1.1.0.d" ] && [ "$REQUESTED_VERSION" != "1.1.0.e" ] && [ "$REQUESTED_VERSION" != "1.1.0.f" ] && [ "$REQUESTED_VERSION" != "1.1.0.g" ] && [ "$REQUESTED_VERSION" != "1.1.0.h" ] && [ "$REQUESTED_VERSION" != "1.1.1.a" ] && [ "$REQUESTED_VERSION" != "1.1" ]  && [ "$REQUESTED_VERSION" != "1.1.1.b" ] && [ "$REQUESTED_VERSION" != "1.1.1.c" ] && [ "$REQUESTED_VERSION" != "1.1.1.d" ] && [ "$REQUESTED_VERSION" != "1.2" ] && [ "$REQUESTED_VERSION" != "1.1.1.e" ]
+if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" != "1.0.2" ] && [ "$REQUESTED_VERSION" != "1.1.0" ] && [ "$REQUESTED_VERSION" != "1.1.0.b" ] && [ "$REQUESTED_VERSION" != "1.1.0.c" ] && [ "$REQUESTED_VERSION" != "1.1.0.d" ] && [ "$REQUESTED_VERSION" != "1.1.0.e" ] && [ "$REQUESTED_VERSION" != "1.1.0.f" ] && [ "$REQUESTED_VERSION" != "1.1.0.g" ] && [ "$REQUESTED_VERSION" != "1.1.0.h" ] && [ "$REQUESTED_VERSION" != "1.1.1.a" ] && [ "$REQUESTED_VERSION" != "1.1" ]  && [ "$REQUESTED_VERSION" != "1.1.1.b" ] && [ "$REQUESTED_VERSION" != "1.1.1.c" ] && [ "$REQUESTED_VERSION" != "1.1.1.d" ] && [ "$REQUESTED_VERSION" != "1.2" ] && [ "$REQUESTED_VERSION" != "1.1.1.e" ] && [ "$REQUESTED_VERSION" != "1.1.1.f" ] && [ "$REQUESTED_VERSION" != "1.2.0.a" ]
 then
 	echo "Unknown Spark version requested given available Spark versions for this Hadoop version"
 	exit 1
@@ -221,6 +238,10 @@ elif [ "$REQUESTED_VERSION" == "1.1.1.e" ]
 then
         wget -O install-spark-script $SPARK_111e
         python install-spark-script BA
+elif [ "$REQUESTED_VERSION" == "1.1.1.f" ]
+then
+        wget -O install-spark-script $SPARK_111e
+        python install-spark-script BA
 elif [ "$REQUESTED_VERSION" == "1.1" ]
 then
         wget -O install-spark-script $SPARK_11x
@@ -229,6 +250,10 @@ elif [ "$REQUESTED_VERSION" == "1.2" ]
 then
         wget -O install-spark-script $SPARK_12x
         python install-spark-script $SPARK_build
+elif [ "$REQUESTED_VERSION" == "1.2.0.a" ]
+then
+        wget -O install-spark-script $SPARK_120a
+        python install-spark-script BA
 else
 	echo "Unknown requested Spark version, $REQUESTED_VERSION"
 	exit 1
@@ -242,6 +267,13 @@ then
 	wget -O install-ganglia-metrics $GANGLIASCRIPT
 	bash install-ganglia-metrics
 fi
+
+if [ $SPARK_MAX -eq 1 ]
+then
+        wget -O maximize-spark-default-config $SPARK_MAX_SCRIPT
+        bash maximize-spark-default-config
+fi
+
 
 
 exit 0
