@@ -20,8 +20,8 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 -g   
    Installs Ganglia metrics configuration for Spark
 
--x
-   Prepares the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes at time of cluster creation]
+-x   
+   Prepares the default Spark config for dedicated Spark single application use [1 executor per core node, num of executors equivalent to core nodes at creation of cluster, all memory/vcores allocated]
 
 
 #### Current versions available:
