@@ -1,7 +1,7 @@
 Spark on EMR
 =====================
 
-These scripts are an example of installing Spark on EMR and configuring.   Please see https://spark.apache.org/ for details regarding the Spark project.
+These scripts are an example of installing Spark on EMR and configuring.   Please see https://spark.apache.org/ for details regarding the Spark project.  Additional examples can be found in [/examples/](examples/README.md).
 
 
 ## How to Install/Configure
@@ -50,7 +50,7 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
  * Spark 1.1.1.d (Addition of JVM options for GC, Add Hbase and Kinesis client jars available to classpath)
  * Spark 1.1.1.e (SparkSQL support for EMR S3 output without temporary directory)
  * --
- * Spark 1.2.0.a (Initial build of Spark's 1.2.0 release)
+ * *Spark 1.2.0.a (Initial build of Spark's 1.2.0 release)*
 
 
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
