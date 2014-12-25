@@ -4,11 +4,11 @@ Spark on EMR - How to Submit a Spark Application with EMR Steps
 # Goals of this document
 
 Demonstrate how to:
-1) execute a Spark applicatoin on EMR without using SSH or directly accessing the master node
-2) set the executor memory and the driver memory
-3) run a specific jar/class
-4) shut down the cluster then the application concludes
-5) configure the logs to be saved to S3
+1. execute a Spark applicatoin on EMR without using SSH or directly accessing the master node
+2. set the executor memory and the driver memory
+3. run a specific jar/class
+4. shut down the cluster then the application concludes
+5. configure the logs to be saved to S3
 
 
 # Some background
