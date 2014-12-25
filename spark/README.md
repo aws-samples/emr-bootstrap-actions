@@ -11,6 +11,7 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 #### Script:   
 `s3://support.elasticmapreduce/spark/install-spark`
 
+Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 region, adjust the bucket name to `s3://eu-central-1.support.elasticmapreduce/`
 
 #### Arguments (optional):   
 -v \<version\>
