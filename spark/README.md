@@ -1,7 +1,7 @@
 Spark on EMR
 =====================
 
-These scripts are an example of installing Spark on EMR and configuring.   Please see https://spark.apache.org/ for details regarding the Spark project.
+These scripts are an example of installing Spark on EMR and configuring.   Please see https://spark.apache.org/ for details regarding the Spark project.  Additional examples can be found in [/examples/](examples/README.md).
 
 
 ## How to Install/Configure
@@ -11,6 +11,7 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 #### Script:   
 `s3://support.elasticmapreduce/spark/install-spark`
 
+Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 region, adjust the bucket name to `s3://eu-central-1.support.elasticmapreduce/`
 
 #### Arguments (optional):   
 -v \<version\>
@@ -20,8 +21,8 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 -g   
    Installs Ganglia metrics configuration for Spark
 
--x
-   Prepares the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes at time of cluster creation]
+-x   
+   Prepares the default Spark config for dedicated Spark single application use [1 executor per core node, num of executors equivalent to core nodes at creation of cluster, all memory/vcores allocated]
 
 
 #### Current versions available:
@@ -50,7 +51,7 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
  * Spark 1.1.1.d (Addition of JVM options for GC, Add Hbase and Kinesis client jars available to classpath)
  * Spark 1.1.1.e (SparkSQL support for EMR S3 output without temporary directory)
  * --
- * Spark 1.2.0.a (Initial build of Spark's 1.2.0 release)
+ * *Spark 1.2.0.a (Initial build of Spark's 1.2.0 release)*
 
 
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
