@@ -12,8 +12,15 @@
 #
 set -x
 #
-VCOREREFERENCE=http://support.elasticmapreduce.s3.amazonaws.com/spark/vcorereference.tsv
-CONFIGURESPARK=http://support.elasticmapreduce.s3.amazonaws.com/spark/configure-spark.bash
+if [ -n "$1" ]
+then
+	SPARK_SUPPORT_HOST="$1"
+else
+	SPARK_SUPPORT_HOST=http://support.elasticmapreduce.s3.amazonaws.com/spark
+fi
+
+VCOREREFERENCE="${SPARK_SUPPORT_HOST}/vcorereference.tsv"
+CONFIGURESPARK="${SPARK_SUPPORT_HOST}/configure-spark.bash"
 #
 echo "Configuring Spark default configuration to the max memory and vcore setting given configured number of cores nodes at cluster creation"
 

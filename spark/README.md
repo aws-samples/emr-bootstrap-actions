@@ -21,9 +21,15 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 -g   
    Installs Ganglia metrics configuration for Spark
 
--l	<logging level>	- Sets log4j.rootCategory. Spark comes with INFO which might be too verbose. If so, try WARN.
-                      Possible values: ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE, WARN
-
+-l \<logging level\>
+  Sets log4j.rootCategory. Spark comes with INFO which might be too verbose. If so, try WARN. 
+  Possible values: ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE, WARN
+                      
+-s \<URI to contents of spark directory\> 
+   If you self-host this collection of scripts, you can pass, eg.:
+   `-s http://s3-eu-west-1.amazonaws.com/{yourbucket}/emr-bootstrap-actions/spark`. 
+   At the moment this option is not respected with -g option.
+                      
 -x   
    Prepares the default Spark config for dedicated Spark single application use [1 executor per core node, num of executors equivalent to core nodes at creation of cluster, all memory/vcores allocated]
 
