@@ -4,9 +4,11 @@ set -x -e
 # Simple script to perform third-party install of Spark on EMR clusters.
 #
 # Arguments (optional):
-#   -v <version>      - Ability to select a specific Spark build version according to supported list
-#   -g		      - For Spark builds 1.1.0.c and later, enables Ganglia metrics
-#   -x                - Sets the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes]
+#   -v <version>        - Ability to select a specific Spark build version according to supported list
+#   -g		            - For Spark builds 1.1.0.c and later, enables Ganglia metrics
+#   -l	<logging level>	- Sets log4j.rootCategory. Spark comes with INFO which might be too verbose. If so, try WARN.
+#                           Possible values: ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE, WARN
+#   -x                  - Sets the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes]
 #
 # Supported versions
 #
@@ -97,8 +99,10 @@ INSTALLGANGLIA=0
 SPARK_MAX_SCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/maximize-spark-default-config
 SPARK_MAX=0
 
+SPARK_CONFIGURE_LOG4J_SCRIPT=http://s3-eu-west-1.amazonaws.com/emr.intags.com/bootstrap/configure-log4j-config
+
 REQUESTED_VERSION="(not specified)"
-while getopts "v:gb:x" opt; do
+while getopts "v:gb:xl:" opt; do
   case $opt in
     v)
       REQUESTED_VERSION=$OPTARG
@@ -108,6 +112,9 @@ while getopts "v:gb:x" opt; do
       ;;
     b)
       SPARK_build=$OPTARG
+      ;;
+    l)
+      SPARK_LOG4J_ROOT_LEVEL=$OPTARG
       ;;
     x)
       SPARK_MAX=1
@@ -257,6 +264,12 @@ then
 else
 	echo "Unknown requested Spark version, $REQUESTED_VERSION"
 	exit 1
+fi
+
+if [ -n "$SPARK_LOG4J_ROOT_LEVEL" ]
+then
+        wget -O configure-log4j-config ${SPARK_CONFIGURE_LOG4J_SCRIPT}
+        bash configure-log4j-config ${SPARK_LOG4J_ROOT_LEVEL}
 fi
 
 #===

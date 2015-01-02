@@ -118,20 +118,6 @@ def config():
 
     subprocess.check_call(["mv", spark_env_tmp_location, spark_env_final_location])
 
-    # log4j.properties.template file:
-    # reduce amount of logs coming to console: replace log4j.rootCategory=INFO with log4j.rootCategory=WARN
-    spark_log4j_template_file = os.path.join(spark_home, "conf/log4j.properties.template")
-    spark_log4j_file = os.path.join(spark_home, "conf/log4j.properties")
-    subprocess.check_call(["/bin/mv", spark_log4j_template_file, spark_log4j_file])
-    needle = "log4j.rootCategory=INFO"
-    replacement = "log4j.rootCategory=WARN"
-    log4j_contents = open(spark_log4j_file).read()
-    if needle in log4j_contents:
-        log4j_updated_contents = log4j_contents.replace(needle, replacement)
-        f = open (spark_log4j_file, 'w')
-        f.write(log4j_updated_contents)
-        f.flush()
-        f.close()
 
 if __name__ == '__main__':
     args = sys.argv[1:]
