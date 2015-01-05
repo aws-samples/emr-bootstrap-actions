@@ -87,21 +87,19 @@ Launching a Tajo cluster with additional configurations
 Terminating a Tajo cluster
 -------------------------------------------------------
 
-* Launching ÇÒ¶§, ¸®ÅÏµÇ´Â cluster id¸¦ ±â¾ïÇØµÎÀÚ.
+You need to remember your cluster id when you launch an Tajo cluster. Please replace ```<CLUSTER_ID>``` by your cluster id.
 
 ```
-    aws emr terminate-clusters \
-    --cluster-ids "j-FC5DVH3RI6AA"
+    aws emr terminate-clusters --cluster-ids "<CLUSTER ID>"
 ```
 
 Listing a instance of Tajo cluster
 -------------------------------------------------------
 
-* Launching ÇÒ¶§, ¸®ÅÏµÇ´Â cluster id¸¦ ±â¾ïÇØµÎÀÚ.
+You need to remember your cluster id when you launch an Tajo cluster. Please replace ```<CLUSTER_ID>``` by your cluster id.
 
 ```
-    aws emr list-instances \
-    --cluster-ids "j-FC5DVH3RI6AA"
+    aws emr list-instances --cluster-ids "j-FC5DVH3RI6AA"
 ```
 
 How to test bootstrap in local machine
@@ -117,7 +115,7 @@ $ ./install-EMR-tajo.sh -t /[your_local_binary_path]/tajo-0.9.0.tar.gz -c /[your
 
 Running with AWS RDS
 ====================
-Tajo can use RDS. For it, you need to make sure you already have a running RDS instance. ±×¸®°í RDSÁ¤º¸¸¦ ```-s``` ¿É¼ÇÀ¸·Î catalog Á¤º¸¸¦ ¼³Á¤ÇÑ´Ù. 
+Tajo can use RDS. For it, you need to make sure you already have a running RDS instance. ê·¸ë¦¬ê³  RDSì •ë³´ë¥¼ ```-s``` ì˜µì…˜ìœ¼ë¡œ catalog ì •ë³´ë¥¼ ì„¤ì •í•œë‹¤. 
 
 ```
     aws emr create-cluster \
