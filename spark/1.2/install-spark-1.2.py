@@ -14,7 +14,7 @@ spark_version = "1.2"  #follows Spark branch-1.2
 hadoop_version = "2.4.0"
 
 # base path
-s3_base = "s3://support.elasticmapreduce/spark/"
+s3_base = "s3://support.elasticmapreduce/spark"
 
 lock_file = '/tmp/spark-installed'
 

@@ -68,7 +68,9 @@ IFS='.'
 read -a AMI_VERSION_ARRAY <<< "${AMI_VERSION}"
 IFS="$OIFS"
 
-SPARK_build=2014112801
+#default builds to use
+SPARK1_2_build=2014121700
+SPARK1_1_build=2014112801
 SPARK_MAX=0
 INSTALLGANGLIA=0
 SPARK_SUPPORT_HOST=http://support.elasticmapreduce.s3.amazonaws.com/spark
@@ -83,7 +85,8 @@ while getopts "v:gb:xl:s:" opt; do
       INSTALLGANGLIA=1
       ;;
     b)
-      SPARK_build=$OPTARG
+      SPARK1_2_build=$OPTARG
+      SPARK1_1_build=$OPTARG
       ;;
     l)
       SPARK_LOG4J_ROOT_LEVEL=$OPTARG
@@ -261,11 +264,11 @@ then
 elif [ "$REQUESTED_VERSION" == "1.1" ]
 then
         wget -O install-spark-script $SPARK_11x
-        python install-spark-script $SPARK_build
+        python install-spark-script ${SPARK1_1_build}
 elif [ "$REQUESTED_VERSION" == "1.2" ]
 then
         wget -O install-spark-script $SPARK_12x
-        python install-spark-script $SPARK_build
+        python install-spark-script ${SPARK1_2_build}
 elif [ "$REQUESTED_VERSION" == "1.2.0.a" ]
 then
         wget -O install-spark-script $SPARK_120a
