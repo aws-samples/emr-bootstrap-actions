@@ -60,6 +60,7 @@ Launching a Tajo cluster with a default configurations
 $ aws emr create-cluster    \
 	--name="[CLUSTER_NAME]"  \
 	--ami-version=3.3        \
+	--no-auto-terminate	\
 	--ec2-attributes KeyName=[KEY_PAIR_NAME] \
 	--instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
 	--bootstrap-action Name="Install tajo",Path=s3://tajo-emr/install-tajo.sh
@@ -79,6 +80,7 @@ Launching a Tajo cluster with additional configurations
     aws emr create-cluster \
     --name="[CLUSTER_NAME]" \
     --ami-version=3.3 \
+    --no-auto-terminate	\
     --ec2-attributes KeyName=[KEY_PAIR_NAME] \
     --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
     --bootstrap-action Name="Install tajo",Path=s3://tajo-emr/install-tajo.sh,Args=["-t","s3://[your_bucket]/tajo-0.9.0.tar.gz","-c","s3://[your_bucket]/conf","-l","s3://[your_bucket]/lib"]
