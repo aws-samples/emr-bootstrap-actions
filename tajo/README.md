@@ -117,7 +117,7 @@ $ ./install-EMR-tajo.sh -t /[your_local_binary_path]/tajo-0.9.0.tar.gz -c /[your
 
 Running with AWS RDS
 ====================
-Tajo can use RDS. For it, you need to make sure you already have a running RDS instance. 그리고 RDS정보를 ```-s``` 옵션으로 catalog 정보를 설정한다. 
+Tajo can use RDS. For it, you need to make sure you already have a running RDS instance. And then infomation about RDS set to ```-s``` option.
 
 ```
     aws emr create-cluster \
