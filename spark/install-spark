@@ -7,6 +7,7 @@ set -x -e
 #   -v <version>      - Ability to select a specific Spark build version according to supported list
 #   -g		      - For Spark builds 1.1.0.c and later, enables Ganglia metrics
 #   -x                - Sets the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes]
+#   -u <s3path> - Added the jars in the given S3 path to spark classpath (ahead of all other dependencies).
 #
 # Supported versions
 #
@@ -96,9 +97,10 @@ INSTALLGANGLIA=0
 
 SPARK_MAX_SCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/maximize-spark-default-config
 SPARK_MAX=0
+USER_PROVIDED_JARS=
 
 REQUESTED_VERSION="(not specified)"
-while getopts "v:gb:x" opt; do
+while getopts "v:gb:xu:" opt; do
   case $opt in
     v)
       REQUESTED_VERSION=$OPTARG
@@ -111,6 +113,9 @@ while getopts "v:gb:x" opt; do
       ;;
     x)
       SPARK_MAX=1
+      ;;
+    u)
+      USER_PROVIDED_JARS=$OPTARG
       ;;
   esac
 done
@@ -252,8 +257,9 @@ then
         python install-spark-script $SPARK_build
 elif [ "$REQUESTED_VERSION" == "1.2.0.a" ]
 then
+        echo "Installing $SPARK_120a with $USER_PROVIDED_JARS jars"
         wget -O install-spark-script $SPARK_120a
-        python install-spark-script BA
+        python install-spark-script BA $USER_PROVIDED_JARS
 else
 	echo "Unknown requested Spark version, $REQUESTED_VERSION"
 	exit 1

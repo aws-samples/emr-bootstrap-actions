@@ -4,6 +4,7 @@ import os
 import subprocess
 import glob
 import sys
+import shutil
 
 # components versions
 scala_version = "2.10.3"
@@ -43,7 +44,7 @@ def download_and_uncompress_files():
 	os.remove(os.path.join(tmp_dir,scala_archive))
 	os.remove(os.path.join(tmp_dir,spark_archive))
 
-def prepare_classpath():
+def prepare_classpath(userProvidedJars):
 	# This function is needed to copy the jars to a dedicated Spark folder,
 	# in which all the scala related jars are removed
 	emr = os.path.join(spark_classpath,"emr")
@@ -69,6 +70,14 @@ def prepare_classpath():
 	subprocess.check_call(cmd,shell=True)
 	cmd = "/bin/ls /home/hadoop/.versions/spark-*/lib/amazon-kinesis-client-*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
 	subprocess.check_call(cmd,shell=True)
+	if len(userProvidedJars) > 0:
+		userProvidedJarsPath = os.path.join(spark_classpath,"user-provided")
+		subprocess.check_call(["/bin/mkdir","-p",userProvidedJarsPath])
+		jarsTmp = os.path.join(tmp_dir,"userProvidedJars")
+		subprocess.check_call(["/bin/mkdir","-p",jarsTmp])
+		subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-copyToLocal",userProvidedJars, jarsTmp])
+		subprocess.check_call("/bin/ls {0}/*/*.jar | xargs -n 1 -I %% cp %% {1}".format(jarsTmp,userProvidedJarsPath),shell=True)
+		shutil.rmtree(jarsTmp, ignore_errors=True)
 
 	# remove scala from classpath
 	scala_jars = glob.glob(emr+"/scala*")
@@ -88,9 +97,9 @@ def config():
 	spark_defaults_tmp_location = os.path.join(tmp_dir,"spark-defaults.conf")
 	spark_default_final_location = os.path.join(spark_home,"conf")
 	with open(spark_defaults_tmp_location,'a') as spark_defaults:
-		spark_defaults.write("spark.eventLog.enabled  true\n")
-		spark_defaults.write("spark.eventLog.dir      {0}\n".format(spark_evlogs))
-		spark_defaults.write("spark.executor.extraJavaOptions         -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:MaxHeapFreeRatio=70\n")
+		spark_defaults.write("spark.eventLog.enabled	true\n")
+		spark_defaults.write("spark.eventLog.dir			{0}\n".format(spark_evlogs))
+		spark_defaults.write("spark.executor.extraJavaOptions					-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:MaxHeapFreeRatio=70\n")
 	subprocess.check_call(["/bin/mv",spark_defaults_tmp_location,spark_default_final_location])
 
 	# bashrc file
@@ -116,7 +125,7 @@ def config():
 		spark_env.write("export SPARK_DAEMON_JAVA_OPTS=\"-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:MaxHeapFreeRatio=70\"\n")
 		spark_env.write("export SPARK_LOCAL_DIRS={0}\n".format(local_dir))
 		spark_env.write("export SPARK_LOG_DIR={0}\n".format(spark_log_dir))
-		spark_env.write("export SPARK_CLASSPATH=\"{0}/emr/*:{1}/emrfs/*:{2}/share/hadoop/common/lib/*:{3}\"\n".format(spark_classpath,spark_classpath,hadoop_home,lzo_jar))
+		spark_env.write("export SPARK_CLASSPATH=\"{0}/user-provided/*:{0}/emr/*:{1}/emrfs/*:{2}/share/hadoop/common/lib/*:{3}\"\n".format(spark_classpath,spark_classpath,spark_classpath,hadoop_home,lzo_jar))
 
 	subprocess.check_call(["mv",spark_env_tmp_location,spark_env_final_location])
 
@@ -131,7 +140,7 @@ def start_history_server():
 
 if __name__ == '__main__':
 	args = sys.argv[1:]
-	if len(args) == 1:
+	if len(args) >= 1:
 		if args[0].upper() == 'BA':
 			# this block is needed to avoid running the same BA multiple times in case
 			# the instance-controller is restarted or the instance rebooted
@@ -139,8 +148,11 @@ if __name__ == '__main__':
 				open(lock_file,'r')
 				print "BA already executed"
 			except Exception:
+				userProvidedJars = ""
+				if len(args) == 2:
+					userProvidedJars = args[1]
 				download_and_uncompress_files()
-				prepare_classpath()
+				prepare_classpath(userProvidedJars)
 				config()
 				# create lock file
 				open(lock_file,'a').close()
@@ -149,4 +161,4 @@ if __name__ == '__main__':
 			start_history_server()
 	else:
 		print sys.argv
-		print "Available options are: BA, STEP"			
+		print "Available options are: BA <userProvidedJars>, STEP"			
