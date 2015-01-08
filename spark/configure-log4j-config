@@ -1,0 +1,41 @@
+#!/bin/bash
+# Configures log4j.properties for specified level
+
+function list_contains()
+{
+    local list="$1"
+    local item="$2"
+    if [[ ${list} =~ ${item} ]]
+    then
+        return 0
+    else
+        return 1
+    fi
+}
+
+CONFIG_FILE_TEMPLATE="/home/hadoop/spark/conf/log4j.properties.template"
+CONFIG_FILE="/home/hadoop/spark/conf/log4j.properties"
+
+if [ ! -f CONFIG_FILE ]
+then
+    cp -v ${CONFIG_FILE_TEMPLATE} ${CONFIG_FILE}
+fi
+
+#first argument must be a valid log4j level
+if [ -n "$1" ]
+then
+
+    ALLOWED_VALUES="ALL DEBUG ERROR FATAL INFO OFF TRACE WARN"
+    if list_contains "$ALLOWED_VALUES" "$1"
+    then
+        NEEDLE="rootCategory=INFO"
+        REPLACEMENT="rootCategory=WARN"
+        sed -i -e "s@$NEEDLE@$REPLACEMENT@" ${CONFIG_FILE}
+    else
+        echo "'$1' is not in the list of allowed values: ${ALLOWED_VALUES}"
+        exit 65
+    fi
+
+fi
+
+exit 0

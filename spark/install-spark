@@ -4,9 +4,14 @@ set -x -e
 # Simple script to perform third-party install of Spark on EMR clusters.
 #
 # Arguments (optional):
-#   -v <version>      - Ability to select a specific Spark build version according to supported list
-#   -g		      - For Spark builds 1.1.0.c and later, enables Ganglia metrics
-#   -x                - Sets the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes]
+#   -v <version>        - Ability to select a specific Spark build version according to supported list
+#   -g		            - For Spark builds 1.1.0.c and later, enables Ganglia metrics
+#   -l	<logging level>	- Sets log4j.rootCategory. Spark comes with INFO which might be too verbose. If so, try WARN.
+#                           Possible values: ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE, WARN
+#   -s <URI to contents of spark directory> - If you self-host this collection of scripts, you can pass, eg
+#                       http://s3-eu-west-1.amazonaws.com/{yourbucket}/emr-bootstrap-actions/spark.
+#                           At the moment this option is not respected with -g option.
+#   -x                  - Sets the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes]
 #
 # Supported versions
 #
@@ -63,42 +68,15 @@ IFS='.'
 read -a AMI_VERSION_ARRAY <<< "${AMI_VERSION}"
 IFS="$OIFS"
 
-SPARK_081=http://elasticmapreduce.s3.amazonaws.com/samples/spark/0.8.1/install-spark-shark.sh
-#SPARK_100=http://elasticmapreduce.s3.amazonaws.com/samples/spark/1.0.0/install-spark-shark-yarn.rb
-SPARK_100=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.0.0/install-spark-shark-yarn.rb
-SPARK_102=http://support.elasticmapreduce.s3.amazonaws.com/spark/ami-3.1.1/install-spark-1.0.2.py
-SPARK_110=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.py
-SPARK_110b=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.b.py
-SPARK_110c=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.c.py
-SPARK_110d=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.d.py
-SPARK_110e=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.e.py
-SPARK_110f=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.f.py
-SPARK_110g=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.g.py
-SPARK_110h=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.h.py
-SPARK_110h_before323=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.h.before323.py
-
-SPARK_111a=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.a.py
-SPARK_111b=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.b.py
-SPARK_111c=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.c.py
-SPARK_111d=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.d.py
-SPARK_111e=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.e.py
-SPARK_111f=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.f.py
-
-SPARK_120a=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.2.0/install-spark-1.2.0.a.py
-
-SPARK_11x=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1/install-spark-1.1.py
-SPARK_build=2014112801
-
-SPARK_12x=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.2/install-spark-1.2.py
-
-GANGLIASCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/install-ganglia-metrics
-INSTALLGANGLIA=0
-
-SPARK_MAX_SCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/maximize-spark-default-config
+#default builds to use
+SPARK1_2_build=2014121700
+SPARK1_1_build=2014112801
 SPARK_MAX=0
-
+INSTALLGANGLIA=0
+SPARK_SUPPORT_HOST=http://support.elasticmapreduce.s3.amazonaws.com/spark
 REQUESTED_VERSION="(not specified)"
-while getopts "v:gb:x" opt; do
+
+while getopts "v:gb:xl:s:" opt; do
   case $opt in
     v)
       REQUESTED_VERSION=$OPTARG
@@ -107,13 +85,54 @@ while getopts "v:gb:x" opt; do
       INSTALLGANGLIA=1
       ;;
     b)
-      SPARK_build=$OPTARG
+      SPARK1_2_build=$OPTARG
+      SPARK1_1_build=$OPTARG
+      ;;
+    l)
+      SPARK_LOG4J_ROOT_LEVEL=$OPTARG
+      ;;
+    s)
+      SPARK_SUPPORT_HOST=$OPTARG
       ;;
     x)
       SPARK_MAX=1
       ;;
   esac
 done
+
+SPARK_081=http://elasticmapreduce.s3.amazonaws.com/samples/spark/0.8.1/install-spark-shark.sh
+#SPARK_100=http://elasticmapreduce.s3.amazonaws.com/samples/spark/1.0.0/install-spark-shark-yarn.rb
+SPARK_100=${SPARK_SUPPORT_HOST}/1.0.0/install-spark-shark-yarn.rb
+SPARK_102=http://support.elasticmapreduce.s3.amazonaws.com/spark/ami-3.1.1/install-spark-1.0.2.py
+SPARK_110=${SPARK_SUPPORT_HOST}/1.1.0/install-spark-1.1.0.py
+SPARK_110b=${SPARK_SUPPORT_HOST}/1.1.0/install-spark-1.1.0.b.py
+SPARK_110c=${SPARK_SUPPORT_HOST}/1.1.0/install-spark-1.1.0.c.py
+SPARK_110d=${SPARK_SUPPORT_HOST}/1.1.0/install-spark-1.1.0.d.py
+SPARK_110e=${SPARK_SUPPORT_HOST}/1.1.0/install-spark-1.1.0.e.py
+SPARK_110f=${SPARK_SUPPORT_HOST}/1.1.0/install-spark-1.1.0.f.py
+SPARK_110g=${SPARK_SUPPORT_HOST}/1.1.0/install-spark-1.1.0.g.py
+SPARK_110h=${SPARK_SUPPORT_HOST}/1.1.0/install-spark-1.1.0.h.py
+SPARK_110h_before323=${SPARK_SUPPORT_HOST}/1.1.0/install-spark-1.1.0.h.before323.py
+
+SPARK_111a=${SPARK_SUPPORT_HOST}/1.1.1/install-spark-1.1.1.a.py
+SPARK_111b=${SPARK_SUPPORT_HOST}/1.1.1/install-spark-1.1.1.b.py
+SPARK_111c=${SPARK_SUPPORT_HOST}/1.1.1/install-spark-1.1.1.c.py
+SPARK_111d=${SPARK_SUPPORT_HOST}/1.1.1/install-spark-1.1.1.d.py
+SPARK_111e=${SPARK_SUPPORT_HOST}/1.1.1/install-spark-1.1.1.e.py
+SPARK_111f=${SPARK_SUPPORT_HOST}/1.1.1/install-spark-1.1.1.f.py
+
+SPARK_120a=${SPARK_SUPPORT_HOST}/1.2.0/install-spark-1.2.0.a.py
+
+SPARK_11x=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1/install-spark-1.1.py
+
+SPARK_12x=${SPARK_SUPPORT_HOST}/1.2/install-spark-1.2.py
+
+GANGLIASCRIPT=${SPARK_SUPPORT_HOST}/install-ganglia-metrics
+
+SPARK_MAX_SCRIPT=${SPARK_SUPPORT_HOST}/maximize-spark-default-config
+
+SPARK_CONFIGURE_LOG4J_SCRIPT=${SPARK_SUPPORT_HOST}/configure-log4j-config
+
 
 echo "This script installs the third-party software stack Spark on an EMR cluster."
 echo "Requested Spark version: $REQUESTED_VERSION"
@@ -245,11 +264,11 @@ then
 elif [ "$REQUESTED_VERSION" == "1.1" ]
 then
         wget -O install-spark-script $SPARK_11x
-        python install-spark-script $SPARK_build
+        python install-spark-script ${SPARK1_1_build}
 elif [ "$REQUESTED_VERSION" == "1.2" ]
 then
         wget -O install-spark-script $SPARK_12x
-        python install-spark-script $SPARK_build
+        python install-spark-script ${SPARK1_2_build}
 elif [ "$REQUESTED_VERSION" == "1.2.0.a" ]
 then
         wget -O install-spark-script $SPARK_120a
@@ -257,6 +276,12 @@ then
 else
 	echo "Unknown requested Spark version, $REQUESTED_VERSION"
 	exit 1
+fi
+
+if [ -n "$SPARK_LOG4J_ROOT_LEVEL" ]
+then
+        wget -O configure-log4j-config ${SPARK_CONFIGURE_LOG4J_SCRIPT}
+        bash configure-log4j-config ${SPARK_LOG4J_ROOT_LEVEL}
 fi
 
 #===
@@ -271,7 +296,7 @@ fi
 if [ $SPARK_MAX -eq 1 ]
 then
         wget -O maximize-spark-default-config $SPARK_MAX_SCRIPT
-        bash maximize-spark-default-config
+        bash maximize-spark-default-config ${SPARK_SUPPORT_HOST}
 fi
 
 
