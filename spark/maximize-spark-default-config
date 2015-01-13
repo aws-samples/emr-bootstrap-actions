@@ -8,7 +8,7 @@
 # Limitations:
 #   Assumes a homogenous cluster
 #   Does not account for task nodes (although Spark will use them if configured provided instance can take memory requirements)
-#   Is not dynamic with cluster resizes
+#   Is not dynamic with cluster resices
 #
 set -x
 #
@@ -42,7 +42,8 @@ NUM_VCORES=$(grep vcorereference.tsv -e $CORE_INSTANCE_TYPE | cut -f2)
 
 MAX_YARN_MEMORY=$(grep /home/hadoop/conf/yarn-site.xml -e "yarn\.scheduler\.maximum-allocation-mb" | sed 's/.*<value>\(.*\).*<\/value>.*/\1/g')
 
-EXEC_MEMORY=$(expr $MAX_YARN_MEMORY - 1024 - 384)
+#EXEC_MEMORY=$(expr $MAX_YARN_MEMORY - 1024 - 384)
+EXEC_MEMORY=$(echo "($MAX_YARN_MEMORY - 1024 - 384) - ($MAX_YARN_MEMORY - 1024 - 384) * 0.07 " | bc | cut -d'.' -f1)
 EXEC_MEMORY+="M"
 
 PARALLEL=$(expr $NUM_VCORES \* $NUM_CORE_NODES) 
