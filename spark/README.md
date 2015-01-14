@@ -24,6 +24,8 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 -x   
    Prepares the default Spark config for dedicated Spark single application use [1 executor per core node, num of executors equivalent to core nodes at creation of cluster, all memory/vcores allocated]
 
+-u \<S3 location\>   
+   Adds all JARs present in the S3 location to Spark classpath. These JARs take precedence over all other JARs in the classpath. 
 
 #### Current versions available:
 * Hadoop 1.0.3 (AMI 2.x)
