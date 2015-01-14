@@ -151,6 +151,8 @@ if __name__ == '__main__':
 				userProvidedJars = ""
 				if len(args) == 2:
 					userProvidedJars = args[1]
+				elif len(args) > 2:
+					raise Exception("Unexpected number of arguments. Was expecting only 2 arguments at max. Arguments passed were {0}".format(args))
 				download_and_uncompress_files()
 				prepare_classpath(userProvidedJars)
 				config()
