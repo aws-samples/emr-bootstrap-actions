@@ -1,9 +1,9 @@
 #!/bin/bash
 # Configures spark-default.conf for dedicate/maximum cluster use
-#   Set num executors to number of YARN nodes reporting at time of configuration (spark.executor.instances)
+#   Set num executors to number to total instance count at time of creation (spark.executor.instances)
 #   Set vcores per executor to be all the vcores for the instance type of the core nodes (spark.executor.cores)
 #   Set the memory per executor to the max available for the node (spark.executor.memory)
-#   Set the default parallelism to the total number of cores available across all YARN nodes reporting at time of configuration (spark.default.parallelism)
+#   Set the default parallelism to the total number of cores available across all nodes at time of cluster creation  (spark.default.parallelism)
 #
 # Limitations:
 #   Assumes a homogenous cluster (all core and task instance groups the same instance type)
@@ -20,7 +20,7 @@ echo "Configuring Spark default configuration to the max memory and vcore settin
 /usr/share/aws/emr/scripts/configure-hadoop -y yarn.scheduler.minimum-allocation-mb=256
 
 #Gather core node count
-NUM_NODES=$(yarn node -list | grep -e "^ip-" | wc -l)
+NUM_NODES=$(grep /mnt/var/lib/info/job-flow.json -e "instanceCount" | sed 's/.*instanceCount.*:.\([0-9]*\).*/\1/g')
 
 if [ $NUM_NODES -lt 2 ]
 then
