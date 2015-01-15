@@ -22,7 +22,7 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
    Installs Ganglia metrics configuration for Spark
 
 -x   
-   Prepares the default Spark config for dedicated Spark single application use [1 executor per core node, num of executors equivalent to core nodes at creation of cluster, all memory/vcores allocated]
+   Prepares the default Spark config for dedicated Spark single application use [1 executor per node, num of executors equivalent to core nodes at creation of cluster, all memory/vcores allocated]
 
 -u \<s3://bucket/path_to_find_jars/\>   
    Add the jars in the given S3 path to spark classpath in the user-provided directory (ahead of all other dependencies) 
