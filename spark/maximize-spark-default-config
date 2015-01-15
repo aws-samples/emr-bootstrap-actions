@@ -21,6 +21,7 @@ echo "Configuring Spark default configuration to the max memory and vcore settin
 
 #Gather core node count
 NUM_NODES=$(grep /mnt/var/lib/info/job-flow.json -e "instanceCount" | sed 's/.*instanceCount.*:.\([0-9]*\).*/\1/g')
+NUM_NODES=$(expr $NUM_NODES - 1)
 
 if [ $NUM_NODES -lt 2 ]
 then
