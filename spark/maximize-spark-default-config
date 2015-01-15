@@ -1,14 +1,13 @@
 #!/bin/bash
 # Configures spark-default.conf for dedicate/maximum cluster use
-#   Set num executors to number of core nodes (spark.executor.instances)
+#   Set num executors to number to total instance count at time of creation (spark.executor.instances)
 #   Set vcores per executor to be all the vcores for the instance type of the core nodes (spark.executor.cores)
 #   Set the memory per executor to the max available for the node (spark.executor.memory)
-#   Set the default parallelism to the total cores on available (spark.default.parallelism)
+#   Set the default parallelism to the total number of cores available across all nodes at time of cluster creation  (spark.default.parallelism)
 #
 # Limitations:
-#   Assumes a homogenous cluster
-#   Does not account for task nodes (although Spark will use them if configured provided instance can take memory requirements)
-#   Is not dynamic with cluster resizes
+#   Assumes a homogenous cluster (all core and task instance groups the same instance type)
+#   Is not dynamic with cluster resices
 #
 set -x
 #
@@ -21,38 +20,44 @@ echo "Configuring Spark default configuration to the max memory and vcore settin
 /usr/share/aws/emr/scripts/configure-hadoop -y yarn.scheduler.minimum-allocation-mb=256
 
 #Gather core node count
-NUM_CORE_NODES=$(grep /mnt/var/lib/info/job-flow.json -e "CORE" -A 4 | grep -e requestedInstanceCount | cut -d':' -f2 | sed  's/\s\+//g')
+NUM_NODES=$(grep /mnt/var/lib/info/job-flow.json -e "instanceCount" | sed 's/.*instanceCount.*:.\([0-9]*\).*/\1/g')
+NUM_NODES=$(expr $NUM_NODES - 1)
 
-if [ $NUM_CORE_NODES -lt 2 ]
+if [ $NUM_NODES -lt 2 ]
 then
 	#set back to default to be safe
-	NUM_CORE_NODES=2
+	NUM_NODES=2
 fi
 
-CORE_INSTANCE_TYPE=$(grep /mnt/var/lib/info/job-flow.json -e "CORE" -A 4 | grep -e instanceType | cut -d'"' -f4 | sed  's/\s\+//g')
+SLAVE_INSTANCE_TYPE=$(grep /mnt/var/lib/info/job-flow.json -e "slaveInstanceType" | cut -d'"' -f4 | sed  's/\s\+//g')
 
-if [ $CORE_INSTANCE_TYPE == "" ]
+if [ "$SLAVE_INSTANCE_TYPE" == "" ]
 then
-	CORE_INSTANCE_TYPE="m3.xlarge"
+	SLAVE_INSTANCE_TYPE="m3.xlarge"
 fi
 
 wget $VCOREREFERENCE
 
-NUM_VCORES=$(grep vcorereference.tsv -e $CORE_INSTANCE_TYPE | cut -f2)
+NUM_VCORES=$(grep vcorereference.tsv -e $SLAVE_INSTANCE_TYPE | cut -f2)
 
 MAX_YARN_MEMORY=$(grep /home/hadoop/conf/yarn-site.xml -e "yarn\.scheduler\.maximum-allocation-mb" | sed 's/.*<value>\(.*\).*<\/value>.*/\1/g')
 
-EXEC_MEMORY=$(expr $MAX_YARN_MEMORY - 1024 - 384)
+EXEC_MEMORY=$(echo "($MAX_YARN_MEMORY - 1024 - 384) - ($MAX_YARN_MEMORY - 1024 - 384) * 0.07 " | bc | cut -d'.' -f1)
 EXEC_MEMORY+="M"
 
-PARALLEL=$(expr $NUM_VCORES \* $NUM_CORE_NODES) 
+PARALLEL=$(expr $NUM_VCORES \* $NUM_NODES) 
 
 #--- Now use configure-spark.bash to set values
 
 wget $CONFIGURESPARK
 
-bash configure-spark.bash spark.executor.instances=$NUM_CORE_NODES spark.executor.cores=$NUM_VCORES spark.executor.memory=$EXEC_MEMORY spark.default.parallelism=$PARALLEL
+bash configure-spark.bash spark.executor.instances=$NUM_NODES spark.executor.cores=$NUM_VCORES spark.executor.memory=$EXEC_MEMORY 
 
+if [ $PARALLEL -gt 2 ]
+then
+	#only set/change this if it looks reasonable
+	bash configure-spark.bash spark.default.parallelism=$PARALLEL
+fi
 
 
 exit 0
