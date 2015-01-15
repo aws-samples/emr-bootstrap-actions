@@ -24,10 +24,10 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 -x   
    Prepares the default Spark config for dedicated Spark single application use [1 executor per core node, num of executors equivalent to core nodes at creation of cluster, all memory/vcores allocated]
 
--u \<S3 location\>   
+-u \<s3://bucket/path_to_find_jars/\>   
    Add the jars in the given S3 path to spark classpath in the user-provided directory (ahead of all other dependencies) 
 
--a
+-a   
    (Use cautiously) Place spark-assembly-*.jar ahead of all system jars on spark classpath (user-provided via -u will still precede.
 
 #### Current versions available:
