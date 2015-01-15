@@ -6,8 +6,7 @@
 #   Set the default parallelism to the total number of cores available across all YARN nodes reporting at time of configuration (spark.default.parallelism)
 #
 # Limitations:
-#   Assumes a homogenous cluster
-#   Does not account for task nodes (although Spark will use them if configured provided instance can take memory requirements)
+#   Assumes a homogenous cluster (all core and task instance groups the same instance type)
 #   Is not dynamic with cluster resices
 #
 set -x
@@ -29,16 +28,16 @@ then
 	NUM_NODES=2
 fi
 
-CORE_INSTANCE_TYPE=$(grep /mnt/var/lib/info/job-flow.json -e "CORE" -A 4 | grep -e instanceType | cut -d'"' -f4 | sed  's/\s\+//g')
+SLAVE_INSTANCE_TYPE=$(grep /mnt/var/lib/info/job-flow.json -e "slaveInstanceType" | cut -d'"' -f4 | sed  's/\s\+//g')
 
-if [ $CORE_INSTANCE_TYPE == "" ]
+if [ "$SLAVE_INSTANCE_TYPE" == "" ]
 then
-	CORE_INSTANCE_TYPE="m3.xlarge"
+	SLAVE_INSTANCE_TYPE="m3.xlarge"
 fi
 
 wget $VCOREREFERENCE
 
-NUM_VCORES=$(grep vcorereference.tsv -e $CORE_INSTANCE_TYPE | cut -f2)
+NUM_VCORES=$(grep vcorereference.tsv -e $SLAVE_INSTANCE_TYPE | cut -f2)
 
 MAX_YARN_MEMORY=$(grep /home/hadoop/conf/yarn-site.xml -e "yarn\.scheduler\.maximum-allocation-mb" | sed 's/.*<value>\(.*\).*<\/value>.*/\1/g')
 
