@@ -18,7 +18,7 @@
 # --updateR - installs latest R version, default false
 # --user - sets user for rstudio, default "rstudio"
 # --user-pw - sets user-pw for user USER, default "rstudio"
-# --rstudio-port - sets rstudio port, defaul 80
+# --rstudio-port - sets rstudio port, default 80
 
 
 
