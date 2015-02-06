@@ -1,0 +1,150 @@
+#!/bin/bash
+set -x -e
+
+
+cat > /home/hadoop/accumulo.sh << 'EOF2'
+if ps ax | grep -v grep | egrep "datanode|namenode"> /dev/null
+then
+
+		
+if [ ! -d "/home/hadoop/accumulo" ]; then
+
+
+
+#Change swappiness and IPV6 disable
+echo -e "net.ipv6.conf.all.disable_ipv6 = 1" | sudo tee --append /etc/sysctl.conf
+echo -e "net.ipv6.conf.default.disable_ipv6 = 1" | sudo tee --append /etc/sysctl.conf
+echo -e "net.ipv6.conf.lo.disable_ipv6 = 1" | sudo tee --append /etc/sysctl.conf
+echo -e "vm.swappiness = 10" | sudo tee --append /etc/sysctl.conf
+
+sudo sysctl -w vm.swappiness=10
+
+echo -e "" | sudo tee --append /etc/security/limits.conf
+echo -e "*\t\tsoft\tnofile\t65536" | sudo tee --append /etc/security/limits.conf
+echo -e "*\t\thard\tnofile\t65536" | sudo tee --append /etc/security/limits.conf
+
+USER=accumulo
+USERPW=secret
+ACCUMULO_INSTANCE=instance
+HOMEDIR=/home/hadoop
+ZOOKEEPRERV=3.4.6
+ZOO_LOG_DIR=/mnt/var/log/zookeeper
+EMR_BUCKET=elasticmapreduce.bootstrapactions
+ACCUMULOV=1.6.1
+ACCUMULO_TSERVER_OPTS=1GB
+
+
+#Add accumulo user
+sudo adduser $USER
+sudo sh -c "echo '$USERPW' | passwd $USER --stdin"
+
+
+cd $HOMEDIR/.versions
+
+
+#Installing Zookeeper
+echo "Downloading Zookeeper"
+wget http://apache.mirrors.tds.net/zookeeper/stable/zookeeper-${ZOOKEEPRERV}.tar.gz
+tar xzf zookeeper*tar.gz
+ln -sf $HOMEDIR/.versions/zookeeper-${ZOOKEEPRERV}  $HOMEDIR/zookeeper
+
+#Run only on master
+if grep isMaster /mnt/var/lib/info/instance.json | grep true;
+then
+mkdir -p ${ZOO_LOG_DIR}/log
+mkdir -p ${ZOO_LOG_DIR}/data
+echo "clientPort=2181" > $HOMEDIR/zookeeper/conf/zoo.cfg
+echo "dataDir=${ZOO_LOG_DIR}/snapshot" >> $HOMEDIR/zookeeper/conf/zoo.cfg
+echo "syncLimit=5" >> $HOMEDIR/zookeeper/conf/zoo.cfg
+echo "tickTime=2000" >> $HOMEDIR/zookeeper/conf/zoo.cfg
+echo "initLimit=10" >> $HOMEDIR/zookeeper/conf/zoo.cfg
+echo "maxClientCnxns=100" >> $HOMEDIR/zookeeper/conf/zoo.cfg
+echo "dataLogDir=${ZOO_LOG_DIR}/data" >> $HOMEDIR/zookeeper/conf/zoo.cfg
+echo "Starting Zookeeper..."
+export ZOO_LOG_DIR=${ZOO_LOG_DIR}
+$HOMEDIR/zookeeper/bin/zkServer.sh start
+fi
+
+
+#Install accumulo
+
+cd $HOMEDIR/.versions
+wget http://${EMR_BUCKET}.s3.amazonaws.com/accumulo/${ACCUMULOV}/accumulo-${ACCUMULOV}-bin.tar.gz
+
+tar -xvzf accumulo-${ACCUMULOV}-bin.tar.gz
+ln -sf $HOMEDIR/.versions/accumulo-$ACCUMULOV $HOMEDIR/accumulo
+
+sudo yum install -y expect
+
+
+cp $HOMEDIR/accumulo/conf/examples/${ACCUMULO_TSERVER_OPTS}/standalone/* $HOMEDIR/accumulo/conf/
+
+#Get Zookeeper IP address
+if grep isMaster /mnt/var/lib/info/instance.json | grep true;
+then
+ZK_IPADDR=`curl http://169.254.169.254/latest/meta-data/local-ipv4`
+else
+ZK_IPADDR=`grep -i "yarn.resourcemanager.admin.address<" /home/hadoop/conf/yarn-site.xml | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'`
+fi
+
+
+#Update accumulo-site.xml
+sed -i "s/<value>localhost:2181<\/value>/<value>${ZK_IPADDR}:2181<\/value>/" $HOMEDIR/accumulo/conf/accumulo-site.xml
+#sed -i "s/<value>root<\/value>/<value>accumulo<\/value><\/property><property><name>trace.password<\/name><value>secret<\/value>/" $HOMEDIR/accumulo/conf/accumulo-site.xml
+
+
+cat >> $HOMEDIR/accumulo/conf/accumulo-env.sh  << EOF
+export ACCUMULO_HOME=/home/hadoop/accumulo
+export HADOOP_HOME=/home/hadoop
+export ACCUMULO_LOG_DIR=/mnt/var/log/accumulo
+export JAVA_HOME=/usr/lib/jvm/java
+export ZOOKEEPER_HOME=/home/hadoop/zookeeper
+export HADOOP_PREFIX=/home/hadoop
+export HADOOP_CONF_DIR=/home/hadoop/conf
+EOF
+
+hostname -f > $HOMEDIR/accumulo/conf/monitor
+hostname -f > $HOMEDIR/accumulo/conf/gc
+hostname -f > $HOMEDIR/accumulo/conf/tracers
+hostname -f > $HOMEDIR/accumulo/conf/gc
+hostname -f > $HOMEDIR/accumulo/conf/slaves
+
+
+#Run on master/slave based on configuration
+if grep isMaster /mnt/var/lib/info/instance.json | grep true;
+then
+
+	hostname -f > $HOMEDIR/accumulo/conf/masters
+	#echo -e "localhost"  > $HOMEDIR/accumulo/conf/slaves
+
+	export ACCUMULO_HOME=/home/hadoop/accumulo
+	export HADOOP_HOME=/home/hadoop
+	export ACCUMULO_LOG_DIR=/mnt/var/log/accumulo
+	export JAVA_HOME=/usr/lib/jvm/java
+	export ZOOKEEPER_HOME=/home/hadoop/zookeeper
+	export HADOOP_PREFIX=/home/hadoop
+	export HADOOP_CONF_DIR=/home/hadoop/conf
+	
+	#Create Accumulo HDFS location
+	/home/hadoop/bin/hadoop fs -mkdir /accumulo
+	/home/hadoop/bin/hadoop fs -chown -R $USER:$USER /accumulo
+
+	mkdir -p /mnt/var/log/accumulo/logs/
+	sudo chown $USER:$USER -R /mnt/var/log/accumulo
+	sudo -u $USER $HOMEDIR/accumulo/bin/accumulo init --clear-instance-name --instance-name $ACCUMULO_INSTANCE --password $USERPW	
+else
+	mkdir -p /mnt/var/log/accumulo/logs/
+	sudo chown $USER:$USER -R /mnt/var/log/accumulo
+	MASTER=`grep -i "yarn.resourcemanager.admin.address<" /home/hadoop/conf/yarn-site.xml | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'`
+	echo $MASTER > $HOMEDIR/accumulo/conf/masters	
+fi
+
+sudo -u $USER  $HOMEDIR/accumulo/bin/start-here.sh
+sudo sed -i 's/.*accumulo.*//' /etc/crontab
+fi
+fi
+EOF2
+
+
+
+sudo sh -c "echo '*/1     * * * *   hadoop     bash /home/hadoop/accumulo.sh > /home/hadoop/cron.log 2>&1 ' >> /etc/crontab"
