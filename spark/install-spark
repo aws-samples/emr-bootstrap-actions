@@ -1,63 +1,57 @@
 #!/bin/bash
-set -x -e
+set -x 
 #
 # Simple script to perform third-party install of Spark on EMR clusters.
 #
 # Arguments (optional):
-#   -v <version>      - Ability to select a specific Spark build version according to supported list
-#   -g		      - For Spark builds 1.1.0.c and later, enables Ganglia metrics
+#   -c <s3_config_file>  - The install-spark config file which tells the script where to find version specific install scripts and binaries, defaults to AWS provided config
+#   -v <version>      - Ability to select a specific Spark build version as avialable via the config file, see https://github.com/awslabs/emr-bootstrap-actions/blob/master/spark/README.md
+#   -b <buildid>      - May be used by the versioned Spark install script in order to request a specific build
+#   -g		      - Enables Ganglia metrics
 #   -x                - Sets the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes]
-#   -u <s3path>       - Add the jars in the given S3 path to spark classpath in the user-provided directory (ahead of all other dependencies) [Spark 1.2.0.b and later]
+#   -u <s3path>       - Add the jars in the given S3 path to spark classpath in the user-provided directory (ahead of all other dependencies) 
 #   -a		      - (Use cautiously) Place spark-assembly-*.jar ahead of all system jars on spark classpath
-#
-# Supported versions
-#
-# Hadoop 1.0.3, AMI 2.3.x and up (excluding AMI 3.x and later)
-#   Spark 0.8.1
-#
-# Hadoop 2.2.0, AMI 3.0.x
-#   Spark 1.0.0
-#
-# Hadoop 2.4.0 (AMI 3.1.x and 3.2.0 - 3.2.3, 3.3.0-3.3.1) 
-#   Spark 1.0.2
-#
-#   Spark 1.1.0   
-#
-#   Spark 1.1.0.b (httpclient 4.2.5 for aws sdk s3 integration)
-#   Spark 1.1.0.c (kinesis examples, spark-submit deploy mode default to cluster, sql hive depenency fix)
-#   Spark 1.1.0.d (kinesis jars added to lib, added JavaKinesisWordCountASLYARN example using YARN)
-#   Spark 1.1.0.e (kinesis example sources added to examples dir, includes SPARK-3595 for correct S3 output handling)
-#   Spark 1.1.0.f (install script change to support EMR AMI versions 3.2.3, 3.1.4 and later)
-#   Spark 1.1.0.g (disables multipart upload for Hadoop output formats as workaround, Enables Pyspark support)
-#   Spark 1.1.0.h (same as "g", rebuilt with git repo)  [NOTE: Last version of 1.1.0 release ]
-#
-# Hadoop 2.4.0 (AMI 3.3.x) 
-#   Spark 1.1.1.a (Initial version of Spark's 1.1.1 release with select changes for working on EMR)
-#   Spark 1.1.1.b (Include SPARK-3595 for EMR S3 output without temporary directory)
-#   Spark 1.1.1.c (Change to hadoop-provided profile on build, Fix hive-site.xml support with hive-default.xml)
-#   Spark 1.1.1.d (Addition of JVM options for GC, Add Hbase and Kinesis client jars available to classpath)
-#   Spark 1.1.1.e (SparkSQL support for EMR S3 output without temporary directory)
-#
-# Hadoop 2.4.0 (AMI 3.3.x)
-#   Spark 1.2.0.a (Initial build of Spark's 1.2.0 release)
+#   -l		      - Set the log level of log4j.logger.org.apache.spark for the driver, defaults to INFO (OFF,ERROR,WARN,INFO,DEBUG,ALL), passed as env variable SparkDriverLogLevel to script
 #
 #
-# Experimental versions available (designed to be ran with latest AMI available at time of build)
-#   branch-1.1 ( "-v 1.1 -b <buildId>")
-#     2014112801 (includes SPARK-2848)
-#     2014121700
-#   branch-1.2 ( "-v 1.2 -b <buildId>")
-#     2014120500
-#     2014121100 (includes SparkSQL S3 write fix and multipart upload disabled workaround)
-#     2014121700
-#       
-#
+#  For AWS provided Spark builds and installs refer to https://github.com/awslabs/emr-bootstrap-actions/blob/master/spark/README.md
 #   
+#
+#Config file is a tab-delimited file with these expected fields -
+# field1 - EMR AMI version (may be a, a.b or a.b.c format or 'default', default will be used if exact match cannot be found)
+# field2 - Spark build version (the REQUSTED_VERSION is matched against this field, if not specified it will look for the term 'default', default will be used if exact match cannot be found)
+# field3 - (optional) shell program to use to execute the install script, defaults to python
+# field4 - s3 location of a specific install script for this AMI and Spark version (is ran with environment variables S3SparkInstallPath, SparkBuild and Ec2Region)
+# field5 - s3 path to files that will be used for Spark binaries, how this field is used is up to the install script, sets enviroment variable 'SparkS3InstallPath'
+# field6 - (optional) s3 path to the script executed when "-x" argument is used, defaults to AWS provided version if empty
+# field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
+# field8 - (optional) s3 location for Scala binaries to install, how this field is used is up to the install script, set enviroment variable 'ScalaS3Location'
 #
 #-----------------------------------------------------
 #
+if [ -e "/mnt/sparkinstalled" ]
+then
+	echo "Spark install already ran."
+	exit 0
+fi
+#
+# Gather basic info
 HADOOP_VERSION=`grep /mnt/var/lib/info/job-flow.json  -e hadoopVersion | cut -d ':' -f2 | cut -d'"' -f2`
 AMI_VERSION=$(grep /mnt/var/lib/info/job-flow-state.txt -e amiVersion | cut -d'"' -f2)
+
+if [ "$AMI_VERSION" == "" ]
+then	
+	#this is older ami that does not support ami version info
+	if [ "$HADOOP_VERSION" == "2.2.0" ]
+	then
+		AMI_VERSION="3.0"
+	elif [ "$HADOOP_VERSION" == "1.0.3" ]
+	then
+		AMI_VERSION="2.3"
+	else
+		AMI_VERSION=""
+	fi
+fi
 
 #Process AMI version
 OIFS="$IFS"
@@ -65,46 +59,37 @@ IFS='.'
 read -a AMI_VERSION_ARRAY <<< "${AMI_VERSION}"
 IFS="$OIFS"
 
-SPARK_081=http://elasticmapreduce.s3.amazonaws.com/samples/spark/0.8.1/install-spark-shark.sh
-#SPARK_100=http://elasticmapreduce.s3.amazonaws.com/samples/spark/1.0.0/install-spark-shark-yarn.rb
-SPARK_100=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.0.0/install-spark-shark-yarn.rb
-SPARK_102=http://support.elasticmapreduce.s3.amazonaws.com/spark/ami-3.1.1/install-spark-1.0.2.py
-SPARK_110=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.py
-SPARK_110b=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.b.py
-SPARK_110c=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.c.py
-SPARK_110d=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.d.py
-SPARK_110e=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.e.py
-SPARK_110f=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.f.py
-SPARK_110g=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.g.py
-SPARK_110h=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.h.py
-SPARK_110h_before323=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.0/install-spark-1.1.0.h.before323.py
+#determine the current region and place into REGION
+EC2AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
+REGION="`echo \"$EC2AZ\" | sed -e 's:\([0-9][0-9]*\)[a-z]*\$:\\1:'`"
 
-SPARK_111a=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.a.py
-SPARK_111b=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.b.py
-SPARK_111c=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.c.py
-SPARK_111d=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.d.py
-SPARK_111e=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.e.py
-SPARK_111f=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1.1/install-spark-1.1.1.f.py
 
-SPARK_120a=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.2.0/install-spark-1.2.0.a.py
+REQUESTED_VERSION="(not specified)"
+CONFIG_FILE="(not specified)"
 
-SPARK_11x=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.1/install-spark-1.1.py
-SPARK_build=2014112801
+#prepare the directory structure
+TMPLOCATION="/mnt/install-spark-$RANDOM"
 
-SPARK_12x=http://support.elasticmapreduce.s3.amazonaws.com/spark/1.2/install-spark-1.2.py
+mkdir -p $TMPLOCATION
 
-GANGLIASCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/install-ganglia-metrics
+LOCAL_CONFIG_FILE="$TMPLOCATION/config.file"
+
 INSTALLGANGLIA=0
 
-SPARK_MAX_SCRIPT=http://support.elasticmapreduce.s3.amazonaws.com/spark/maximize-spark-default-config
 SPARK_MAX=0
 USER_PROVIDED_JARS=""
 
 SPARK_ASSEMBLY_CP_FIRST=0
+SPARK_BUILD=""
 
-REQUESTED_VERSION="(not specified)"
-while getopts "v:gb:xu:a" opt; do
+SPARK_DRIVER_LOG_LEVEL="INFO"
+
+#process command line arguments
+while getopts "c:v:gb:xu:al:" opt; do
   case $opt in
+    c)
+      CONFIG_FILE=$OPTARG
+      ;;
     v)
       REQUESTED_VERSION=$OPTARG
       ;;
@@ -112,7 +97,7 @@ while getopts "v:gb:xu:a" opt; do
       INSTALLGANGLIA=1
       ;;
     b)
-      SPARK_build=$OPTARG
+      SPARK_BUILD=$OPTARG
       ;;
     x)
       SPARK_MAX=1
@@ -123,167 +108,203 @@ while getopts "v:gb:xu:a" opt; do
     a)
       SPARK_ASSEMBLY_CP_FIRST=1
       ;;
+    l)
+      SPARK_DRIVER_LOG_LEVEL=$OPTARG
+      ;;
   esac
 done
 
 echo "This script installs the third-party software stack Spark on an EMR cluster."
 echo "Requested Spark version: $REQUESTED_VERSION"
 echo "Hadoop Verison: $HADOOP_VERSION"
+echo "Config file: $CONFIG_FILE"
 
-# Determine avialable version based on Hadoop version
-if [ "$HADOOP_VERSION" == "1.0.3" ]
-then
-	echo "Available Spark versions: 0.8.1"
-	echo "Installing Spark version 0.8.1"
-	REQUESTED_VERSION="0.8.1"
+#=====================
 
-elif [ "$HADOOP_VERSION" == "2.2.0" ]
+#Load config file
+if [ "$CONFIG_FILE" == "(not specified)" ]
 then
-	echo "Available Spark versions: 1.0.0"
-	echo "Installing Spark verison 1.0.0"
-	REQUESTED_VERSION="1.0.0"
-
-elif [ "$HADOOP_VERSION" == "2.4.0" ] 
-then
-	echo "Available Spark versions: 1.0.2, 1.1.0, 1.1.0.b, 1.1.0.c, 1.1.0.d, 1.1.0.e, 1.1.0.f, 1.1.0.g, 1.1.0.h, 1.1.1.a, 1.1.1.b, 1.1.1.c, 1.1.1.d, 1.1.1.e, 1.2.0.a", 1.2.0.b
-
-else
-	echo "Unknown hadoop version, unable to install"
-	exit 1
-fi
-
-#== At this time only Hadoop 2.4.0 EMR supports multiple Spark versions...check for good selection
-if [ "${AMI_VERSION_ARRAY[0]}" == "3" ] && [ "${AMI_VERSION_ARRAY[1]}" == "3" ] && [ "$REQUESTED_VERSION" == "(not specified)" ]
-then
-	echo "No Spark version specified, selecting Spark 1.2.0.a"
-	REQUESTED_VERSION="1.2.0.a"
-
-elif [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" == "(not specified)" ] 
-then
-	echo "No Spark version specified, selecting Spark 1.1.0.h"
-	REQUESTED_VERSION="1.1.0.h"
-else
-	echo "Undefined version"
-fi
-
-if [ "$HADOOP_VERSION" == "2.4.0" ] && [ "$REQUESTED_VERSION" != "1.0.2" ] && [ "$REQUESTED_VERSION" != "1.1.0" ] && [ "$REQUESTED_VERSION" != "1.1.0.b" ] && [ "$REQUESTED_VERSION" != "1.1.0.c" ] && [ "$REQUESTED_VERSION" != "1.1.0.d" ] && [ "$REQUESTED_VERSION" != "1.1.0.e" ] && [ "$REQUESTED_VERSION" != "1.1.0.f" ] && [ "$REQUESTED_VERSION" != "1.1.0.g" ] && [ "$REQUESTED_VERSION" != "1.1.0.h" ] && [ "$REQUESTED_VERSION" != "1.1.1.a" ] && [ "$REQUESTED_VERSION" != "1.1" ]  && [ "$REQUESTED_VERSION" != "1.1.1.b" ] && [ "$REQUESTED_VERSION" != "1.1.1.c" ] && [ "$REQUESTED_VERSION" != "1.1.1.d" ] && [ "$REQUESTED_VERSION" != "1.2" ] && [ "$REQUESTED_VERSION" != "1.1.1.e" ] && [ "$REQUESTED_VERSION" != "1.1.1.f" ] && [ "$REQUESTED_VERSION" != "1.2.0.a" ]
-then
-	echo "Unknown Spark version requested given available Spark versions for this Hadoop version"
-	exit 1
-fi
-
-
-#=============
-# Take action according to version
-if [ "$REQUESTED_VERSION" == "0.8.1" ]
-then
-	wget -O install-spark-script $SPARK_081 
-	bash install-spark-script
-elif [ "$REQUESTED_VERSION" == "1.0.0" ]
-then
-	wget -O install-spark-script $SPARK_100
-	set +e
-	ruby install-spark-script
-	set -e
-elif [ "$REQUESTED_VERSION" == "1.0.2" ]
-then
-        wget -O install-spark-script $SPARK_102
-	python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.0" ]
-then
-        wget -O install-spark-script $SPARK_110
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.0.b" ]
-then
-        wget -O install-spark-script $SPARK_110b
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.0.c" ]
-then
-        wget -O install-spark-script $SPARK_110c
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.0.d" ]
-then
-        wget -O install-spark-script $SPARK_110d
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.0.e" ]
-then
-        wget -O install-spark-script $SPARK_110e
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.0.f" ]
-then
-        wget -O install-spark-script $SPARK_110f
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.0.g" ]
-then
-        wget -O install-spark-script $SPARK_110g
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.0.h" ]
-then
-	if [ "${AMI_VERSION_ARRAY[0]}" == "3" ] && [ "${AMI_VERSION_ARRAY[1]}" == "2" ] && [ "${AMI_VERSION_ARRAY[2]}" -lt 3 ]
+	echo "Using AWS provided config file"
+	if [ "$REGION" == "eu-central-1" ]
 	then
-		wget -O install-spark-script $SPARK_110h_before323
-	elif [ "${AMI_VERSION_ARRAY[0]}" == "3" ] && [ "${AMI_VERSION_ARRAY[1]}" == "1" ] 
-	then
-		wget -O install-spark-script $SPARK_110h_before323
+		CONFIG_FILE=s3://eu-central-1.support.elasticmapreduce/spark/config.file
 	else
-        	wget -O install-spark-script $SPARK_110h
+		CONFIG_FILE=s3://support.elasticmapreduce/spark/config.file
 	fi
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.1.a" ]
+fi
+
+#Download the config locally 
+CMDOUT=$(hadoop fs -get "$CONFIG_FILE" $LOCAL_CONFIG_FILE)
+CMDSIG=$?
+
+if [ "$CMDSIG" -eq 0 ] && [ -e "$LOCAL_CONFIG_FILE" ]
 then
-        wget -O install-spark-script $SPARK_111a
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.1.b" ]
-then
-        wget -O install-spark-script $SPARK_111b
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.1.c" ]
-then
-        wget -O install-spark-script $SPARK_111c
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.1.d" ]
-then
-        wget -O install-spark-script $SPARK_111d
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.1.e" ]
-then
-        wget -O install-spark-script $SPARK_111e
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1.1.f" ]
-then
-        wget -O install-spark-script $SPARK_111e
-        python install-spark-script BA
-elif [ "$REQUESTED_VERSION" == "1.1" ]
-then
-        wget -O install-spark-script $SPARK_11x
-        python install-spark-script $SPARK_build
-elif [ "$REQUESTED_VERSION" == "1.2" ]
-then
-        wget -O install-spark-script $SPARK_12x
-        python install-spark-script $SPARK_build
-elif [ "$REQUESTED_VERSION" == "1.2.0.a" ]
-then
-        wget -O install-spark-script $SPARK_120a
-        python install-spark-script BA 
+	echo "For install-spark using config file $CONFIG_FILE locally copied to $LOCAL_CONFIG_FILE"
 else
-	echo "Unknown requested Spark version, $REQUESTED_VERSION"
+	echo "Unable to download $CONFIG_FILE to local destination"
 	exit 1
 fi
 
-#===
-echo "Spark install complete"
+#Config file is a tab-delimited file with these expected fields -
+# field1 - EMR AMI version (may be a, a.b or a.b.c format or 'default', default will be used if exact match cannot be found)
+# field2 - Spark build version (the REQUSTED_VERSION is matched against this field, if not specified it will look for the term 'default', default will be used if exact match cannot be found)
+# field3 - (optional) shell program to use to execute the install script, defaults to python
+# field4 - s3 location of a specific install script for this AMI and Spark version
+# field5 - s3 path to files that will be used for Spark binaries, how this field is used is up to the install script, sets enviroment variable 'SparkS3InstallPath'
+# field6 - (optional) s3 path to the script executed when "-x" argument is used, defaults to AWS provided version if empty
+# field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
+
+#------------------
+# Process through config file options
+# first, look for exact AMI and Spark version matches
+if [ "$REQUESTED_VERSION" == "(not specified)" ]
+then	
+	REQUESTED_VERSION="default"
+fi
+
+
+CMDOUT=$(grep -P "^$AMI_VERSION\t$REQUESTED_VERSION\t" $LOCAL_CONFIG_FILE)
+CMDSIG=$?
+
+if [ "$CMDSIG" -ne 0 ]
+then	
+	#exact match didn't work, try ami version a.b
+	CMDOUT=$(grep -P "^${AMI_VERSION_ARRAY[0]}.${AMI_VERSION_ARRAY[1]}\t$REQUESTED_VERSION\t" $LOCAL_CONFIG_FILE)
+	CMDSIG=$?
+fi
+
+if [ "$CMDSIG" -ne 0 ]
+then
+        #that ami version didn't work either, try ami version a
+        CMDOUT=$(grep -P "^${AMI_VERSION_ARRAY[0]}\t$REQUESTED_VERSION\t" $LOCAL_CONFIG_FILE)
+        CMDSIG=$?
+fi
+
+if [ "$CMDSIG" -ne 0 ]
+then
+        #try ami versoin as default
+        CMDOUT=$(grep -P "^default\t$REQUESTED_VERSION\t" $LOCAL_CONFIG_FILE)
+        CMDSIG=$?
+fi
+
+
+
+#bail out if we can't find a config line
+if [ "$CMDSIG" -ne 0 ]
+then
+	echo "Unable to match a AMI version and Spark version to an entry in the config file."
+	exit 1
+fi
+
+#read the config line into an array
+OIFS="$IFS"
+IFS=$'\t'
+read -a CONFIG_FIELDS_ARRAY <<< "$CMDOUT"
+IFS="$OIFS"
+
+#-----------------------
+
+# download the install script
+CMDOUT=$(hadoop fs -get "${CONFIG_FIELDS_ARRAY[3]}" $TMPLOCATION/install-spark-script)
+CMDSIG=$?
+
+if [ "$CMDSIG" -ne 0 ]
+then
+	#Unable to download install script
+	echo "Unable to retrieve ${CONFIG_FIELDS_ARRAY[3]}"
+	exit 1
+fi
+
+#---
+
+# execute the install script
+
+if [ "${CONFIG_FIELDS_ARRAY[2]}" == "" ]
+then
+	CONFIG_FIELDS_ARRAY[2] = "python"
+fi
+
+export SparkS3InstallPath="${CONFIG_FIELDS_ARRAY[4]}"
+#optional value that may or may not be defined, up to install-spark-script to know how to use it
+export SparkBuild="$SPARK_BUILD"
+export Ec2Region="$REGION"
+export ScalaS3Location="${CONFIG_FIELDS_ARRAY[7]}"
+export SparkDriverLogLevel="$SPARK_DRIVER_LOG_LEVEL"
+
+CMDOUT=$(${CONFIG_FIELDS_ARRAY[2]} $TMPLOCATION/install-spark-script)
+CMDSIG=$?
+
+if [ "$CMDSIG" -ne 0 ]
+then
+        #Installation was not successful, abort
+        echo "Spark install script ${CONFIG_FIELDS_ARRAY[3]} was not successful, aborting"
+        exit 1
+fi
+
+echo "Spark install from ${CONFIG_FIELDS_ARRAY[3]} complete"
+
+touch /mnt/sparkinstalled
+
+#---------------
+# Perform additional installs and configs due to arguments
+
+# field6 - (optional) s3 path to the script executed when "-x" argument is used, defaults to AWS provided version if empty
+# field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
+
 
 if [ $INSTALLGANGLIA -eq 1 ]
 then
-	wget -O install-ganglia-metrics $GANGLIASCRIPT
-	bash install-ganglia-metrics
+	#We need the ganglia script
+	if [ "${CONFIG_FIELDS_ARRAY[6]}" == "" ]
+	then
+	        if [ "$REGION" == "eu-central-1" ]
+       		then
+               		CONFIG_FIELDS_ARRAY[6]="s3://eu-central-1.support.elasticmapreduce/spark/install-ganglia-metrics"
+        	else
+                	CONFIG_FIELDS_ARRAY[6]="s3://support.elasticmapreduce/spark/install-ganglia-metrics"
+        	fi
+	fi
+
+	CMDOUT=$(hadoop fs -get "${CONFIG_FIELDS_ARRAY[6]}" $TMPLOCATION/install-ganglia-metrics)
+	CMDSIG=$?
+
+	if [ "$CMDSIG" -ne 0 ]
+	then	
+		echo "Unable to download ${CONFIG_FIELDS_ARRAY[6]}, unable to execute gangia installation, skipping"
+	else
+		echo "Installing ganglia metrics with ${CONFIG_FIELDS_ARRAY[6]}"
+		bash $TMPLOCATION/install-ganglia-metrics
+	fi
+		
 fi
 
 if [ $SPARK_MAX -eq 1 ]
 then
-        wget -O maximize-spark-default-config $SPARK_MAX_SCRIPT
-        bash maximize-spark-default-config
+        #We need the script
+        if [ "${CONFIG_FIELDS_ARRAY[5]}" == "" ]
+        then
+                if [ "$REGION" == "eu-central-1" ]
+                then
+                        CONFIG_FIELDS_ARRAY[6]="s3://eu-central-1.support.elasticmapreduce/spark/maximize-spark-default-config"
+                else
+                        CONFIG_FIELDS_ARRAY[6]="s3://support.elasticmapreduce/spark/maximize-spark-default-config"
+                fi
+        fi
+
+        CMDOUT=$(hadoop fs -get "${CONFIG_FIELDS_ARRAY[6]}" $TMPLOCATION/maximize-spark-default-config)
+        CMDSIG=$?
+
+        if [ "$CMDSIG" -ne 0 ]
+        then
+                echo "Unable to download ${CONFIG_FIELDS_ARRAY[5]}, unable to execute Spark dedicated configuration, aborting"
+		exit 1
+        else
+                echo "Installing Spark dedicated configuration with ${CONFIG_FIELDS_ARRAY[5]}"
+                bash $TMPLOCATION/maximize-spark-default-config
+        fi
+
 fi
+
 
 if [ $SPARK_ASSEMBLY_CP_FIRST -eq 1 ]
 then
