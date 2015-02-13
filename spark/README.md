@@ -14,10 +14,10 @@ These scripts are an example of installing Spark on EMR and configuring.   Pleas
 Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 region, adjust the bucket name to `s3://eu-central-1.support.elasticmapreduce/`
 
 #### Arguments (optional):   
--c \<config_file_on_s3\>
+-c \<config_file_on_s3\>   
     The install-spark config file which tells the script where to find version specific install scripts and binaries, defaults to AWS provided config.
 
--v \<version\>
+-v \<version\>   
    **If no version is given, it will install the latest version available for the EMR Hadoop version.**
 
 -g   
@@ -32,7 +32,7 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 -a   
    (Use cautiously) Place spark-assembly-*.jar ahead of all system jars on spark classpath (user-provided via -u will still precede.
 
--l \<threshold\>
+-l \<threshold\>   
    Set the log level of log4j.logger.org.apache.spark for the driver, defaults to INFO (OFF,ERROR,WARN,INFO,DEBUG,ALL)
 
 #### Current version available:
