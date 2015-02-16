@@ -14,3 +14,10 @@ Examples Index
 # Reading input from various sources and formats
 
 - [How to read LZO files](reading-lzo-files.md)
+
+# Other references
+
+- AWS CLI installation and configuration, http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html
+- AWS EMR documentation, http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/
+- AWS EMR AMI version information, http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/ami-versions-supported.html
+- Running Spark on YARN, https://spark.apache.org/docs/latest/running-on-yarn.html

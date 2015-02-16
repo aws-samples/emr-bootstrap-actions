@@ -44,7 +44,7 @@ See [VersionInformation.md](VersionInformation.md) for detailed Spark version in
 
 
 #### Example:
-Using AWS CLI:
+Using AWS CLI (for more on AWS CLI, see http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html):
 ```
 aws emr create-cluster --name SparkCluster --ami-version 3.3 --instance-type m3.xlarge --instance-count 3 \
   --ec2-attributes KeyName=<MYKEY> --applications Name=Hive \
