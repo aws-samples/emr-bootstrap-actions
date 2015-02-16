@@ -1,4 +1,4 @@
-#!/usr/bin/ruby                                                                                                                                                                                                                      
+#!/usr/bin/ruby
 
 require 'json'
 require 'emr/common'
@@ -187,7 +187,7 @@ if @is_master then
 else 
   if test_connection_with_master
     then
-      sudo "#{@hadoop_home}/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://#{@master_ip}:7077 &"
+      exec "#{@hadoop_home}/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://#{@master_ip}:7077 &"
     else 
       raise RuntimeError, 'Worker not able to connect to master'
   end

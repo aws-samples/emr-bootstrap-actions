@@ -1,47 +1,63 @@
 #!/usr/bin/python
-# Small script to install Spark on Emr 3.x Ami
+# Script to install Spark on Emr 
+# Assumes use of SparkS3InstallPath enviroment variable
+# Assumes use of Ec2Region enviroment variable
+# Assumes need to install Scala 2.10 with ScalaS3Location pointing to tgz
 import os 
 import subprocess
 import glob
 import sys
+import shutil
 
-# components versions
-scala_version = "2.10.3"
-spark_version = "1.1.1"
-hadoop_version = "2.4.0"
+# Gather environment info
+# expects to find SparkS3InstallPath defining path to tgz for install
+# expects the basename without extension of path to match the directory name give, for example s3://support.elasticmapreduce/spark/v1.2.0/spark-1.2.0.a.tgz with basename of 
+#  spark-1.2.0.a.tgz will expand into direcotry structure of spark-1.2.0.a/
+# expects to find ScalaS3Location defining path to tgz for Scala install 
+SparkS3InstallPath = os.environ['SparkS3InstallPath']
+ScalaS3Location = os.environ['ScalaS3Location']
+Ec2Region = os.environ['Ec2Region']
 
-# base path
-s3_base = "s3://support.elasticmapreduce/spark/"
+#determine spark basename
+base, ext = os.path.splitext(SparkS3InstallPath)
+SparkFilename=os.path.basename(SparkS3InstallPath)
+SparkBase = os.path.basename(base)
 
-# build some variables
-spark_archive = "spark-{0}.e.tgz".format(spark_version)
-scala_archive = "scala-{0}.tgz".format(scala_version)
-scala_url = "{0}/scala/{1}".format(s3_base,scala_archive)
-spark_url = "{0}/{1}/{2}".format(s3_base,spark_version,spark_archive)
+#set scala path is empty
+if ScalaS3Location == "":
+	if Ec2Region == "eu-central-1":
+		ScalaS3Location = "s3://eu-central-1.support.elasticmapreduce/spark/scala/scala-2.10.3.tgz"
+	else:
+		ScalaS3Location = "s3://support.elasticmapreduce/spark/scala/scala-2.10.3.tgz"
+
+#determine Scala basename
+base, ext = os.path.splitext(ScalaS3Location)
+ScalaFilename = os.path.basename(ScalaS3Location)
+ScalaBase = os.path.basename(base)
+
 
 # various paths
 hadoop_home = "/home/hadoop"
 hadoop_apps = "/home/hadoop/.versions"
 local_dir = "/mnt/spark"
-tmp_dir = "/tmp"
+tmp_dir = "/mnt/staging-spark-install-files"
 spark_home = "/home/hadoop/spark"
 spark_classpath = os.path.join(spark_home,"classpath")
 spark_log_dir = "/mnt/var/log/apps"
-scala_home = os.path.join(hadoop_apps,"scala-{0}".format(scala_version))
+scala_home = os.path.join(hadoop_apps,ScalaBase)
 lock_file = '/tmp/spark-installed'
 
 # Spark logs location used by Spark History server
 spark_evlogs = "hdfs:///spark-logs"
 
+subprocess.check_call(["/bin/mkdir","-p",tmp_dir])
+
 def download_and_uncompress_files():
-	subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-get",scala_url, tmp_dir])
-	subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-get",spark_url, tmp_dir])
-	subprocess.check_call(["/bin/tar", "zxvf" , os.path.join(tmp_dir,spark_archive), "-C", hadoop_apps])
-	subprocess.check_call(["/bin/tar", "zxvf" , os.path.join(tmp_dir,scala_archive), "-C", hadoop_apps])
-	subprocess.check_call(["/bin/ln","-s",hadoop_apps+"/spark-" + spark_version +".e", spark_home])
-	# cleanup 
-	os.remove(os.path.join(tmp_dir,scala_archive))
-	os.remove(os.path.join(tmp_dir,spark_archive))
+	subprocess.check_call(["hadoop","fs","-get",ScalaS3Location, tmp_dir])
+	subprocess.check_call(["hadoop","fs","-get",SparkS3InstallPath, tmp_dir])
+	subprocess.check_call(["/bin/tar", "zxvf" , os.path.join(tmp_dir,SparkFilename), "-C", hadoop_apps])
+	subprocess.check_call(["/bin/tar", "zxvf" , os.path.join(tmp_dir,ScalaFilename), "-C", hadoop_apps])
+	subprocess.check_call(["/bin/ln","-s",hadoop_apps+"/"+SparkBase, spark_home])
 
 def prepare_classpath():
 	# This function is needed to copy the jars to a dedicated Spark folder,
@@ -55,19 +71,21 @@ def prepare_classpath():
 	subprocess.check_call(["/bin/cp","-R","{0}/lib/".format(emrfssharepath),emr_fs])
 	subprocess.check_call(["/bin/cp","-R","/usr/share/aws/emr/lib/",emr])
 
-	cmd = "/bin/ls /home/hadoop/.versions/2.4.0/share/hadoop/common/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
-	subprocess.check_call(cmd,shell=True)
-	cmd = "/bin/ls /home/hadoop/.versions/2.4.0/share/hadoop/yarn/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
-	subprocess.check_call(cmd,shell=True)
-	cmd = "/bin/ls /home/hadoop/.versions/2.4.0/share/hadoop/hdfs/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
-	subprocess.check_call(cmd,shell=True)
-	cmd = "/bin/ls /home/hadoop/.versions/2.4.0/share/hadoop/mapreduce/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
-	subprocess.check_call(cmd,shell=True)
-	cmd = "/bin/ls /home/hadoop/.versions/hive-*/lib/bonecp-*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
-	subprocess.check_call(cmd,shell=True)
-	cmd = "/bin/ls /home/hadoop/.versions/hive-*/lib/mysql-connector-*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
-	subprocess.check_call(cmd,shell=True)
+	#cmd = "/bin/ls /home/hadoop/share/hadoop/common/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
+	#subprocess.check_call(cmd,shell=True)
+	#cmd = "/bin/ls /home/hadoop/share/hadoop/yarn/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
+	#subprocess.check_call(cmd,shell=True)
+	#cmd = "/bin/ls /home/hadoop/share/hadoop/hdfs/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
+	#subprocess.check_call(cmd,shell=True)
+	#cmd = "/bin/ls /home/hadoop/share/hadoop/mapreduce/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
+	#subprocess.check_call(cmd,shell=True)
+	#cmd = "/bin/ls /home/hadoop/.versions/hive-*/lib/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
+	#subprocess.check_call(cmd,shell=True)
 	cmd = "/bin/ls /home/hadoop/.versions/hbase-*/*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
+	subprocess.check_call(cmd,shell=True)
+	cmd = "/bin/ls /home/hadoop/.versions/hive-*/lib/bonecp*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
+	subprocess.check_call(cmd,shell=True)
+	cmd = "/bin/ls /home/hadoop/.versions/hive-*/lib/mysql*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
 	subprocess.check_call(cmd,shell=True)
 	cmd = "/bin/ls /home/hadoop/.versions/spark-*/lib/amazon-kinesis-client-*.jar | xargs -n 1 -I %% cp %% {0}".format(emr)
 	subprocess.check_call(cmd,shell=True)
@@ -103,11 +121,11 @@ def config():
 	spark_env_tmp_location = os.path.join(tmp_dir,"spark-env.sh")
 	spark_env_final_location = os.path.join(spark_home,"conf")
 
-	files= glob.glob("{0}/{1}/share/*/*/*/hadoop-*lzo.jar".format(hadoop_apps,hadoop_version))
+	files= glob.glob("/home/hadoop/share/*/*/*/hadoop-*lzo.jar")
 	if len(files) < 1:
-		files=glob.glob("{0}/{1}/share/*/*/*/hadoop-*lzo-*.jar".format(hadoop_apps,hadoop_version))
+		files=glob.glob("/home/hadoop/share/*/*/*/hadoop-*lzo-*.jar")
 	if len(files) < 1:
-		print "lzo not found inside {0}/{1}/share/".format(hadoop_apps,hadoop_version)
+		print "lzo not found inside /home/hadoop/share/"
 	else:
 		lzo_jar=files[0]
 
@@ -122,33 +140,16 @@ def config():
 
 	subprocess.check_call(["mv",spark_env_tmp_location,spark_env_final_location])
 
-def start_history_server():
-	# create hdfs folder for event logs (actually not needed, it will fail if run as BA)
-	subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-mkdir","-p",spark_evlogs])
-	# start spark history server
-	history_server_script = os.path.join(spark_home,"sbin","start-history-server.sh")
-	subprocess.check_call([history_server_script, spark_evlogs])
-
-
 
 if __name__ == '__main__':
-	args = sys.argv[1:]
-	if len(args) == 1:
-		if args[0].upper() == 'BA':
-			# this block is needed to avoid running the same BA multiple times in case
-			# the instance-controller is restarted or the instance rebooted
-			try:
-				open(lock_file,'r')
-				print "BA already executed"
-			except Exception:
-				download_and_uncompress_files()
-				prepare_classpath()
-				config()
-				# create lock file
-				open(lock_file,'a').close()
+	try:
+		open(lock_file,'r')
+		print "BA already executed"
+	except Exception:
+		download_and_uncompress_files()
+		prepare_classpath()
+		config()
+		# create lock file
+		open(lock_file,'a').close()
+		shutil.rmtree(tmp_dir)
 
-		if args[0].upper() == 'STEP':
-			start_history_server()
-	else:
-		print sys.argv
-		print "Available options are: BA, STEP"			
