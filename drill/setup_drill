@@ -229,13 +229,12 @@ def installDrill(targetDir, runDir, logDir)
     sudo "chown -R hadoop.hadoop #{logDir}"
 
     sudo "/etc/init.d/service-nanny start"
-    sudo "/etc/init.d/service-nanny reload"
+    sudo "/etc/init.d/service-nanny restart"
 end
 
 $targetDir="/home/hadoop/.versions"
 $runDir="/mnt/var/run/drill"
 $logDir="/mnt/var/log/drill"
-if is_master
-    cleanUp($targetDir, $runDir, $logDir)
-    installDrill($targetDir, $runDir, $logDir)
-end
+
+cleanUp($targetDir, $runDir, $logDir)
+installDrill($targetDir, $runDir, $logDir)
