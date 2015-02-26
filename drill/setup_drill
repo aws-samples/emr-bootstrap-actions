@@ -72,7 +72,7 @@ drill.exec: {
   },
   zk: {
         connect: "#{zookeeperConnect}",
-        root: "/drill",
+        root: "drill",
         refresh: 500,
         timeout: 5000,
         retry: {
@@ -201,9 +201,9 @@ end
 end
 
 def installDrill(targetDir, runDir, logDir)
-    drillTarGZUrl="http://people.apache.org/~jacques/apache-drill-1.0.0-m1.rc3"
-    drillTarGZ="apache-drill-1.0.0-m1-binary-release.tar.gz"
-    drillRoot="apache-drill-1.0.0-m1"
+    drillTarGZUrl="http://getdrill.org/drill/download"
+    drillTarGZ="apache-drill-0.7.0.tar.gz"
+    drillRoot="apache-drill-0.7.0"
 
     println "Going to download Apache Drill distribution #{drillTarGZ} from #{drillTarGZUrl}"
     sudo "curl -L --silent --show-error --fail --connect-timeout 60 --max-time 720 --retry 5 -O  #{drillTarGZUrl}/#{drillTarGZ}"
@@ -225,21 +225,16 @@ def installDrill(targetDir, runDir, logDir)
 
     writeDrillConfs($runDir,$logDir)
 
-    println "Installing openjdk1.7"
-    sudo "yum -y install java-1.7.0-openjdk"
-    sudo "alternatives --set java /usr/lib/jvm/jre-1.7.0-openjdk.x86_64/bin/java"
-
     sudo "chown -R hadoop.hadoop #{runDir}"
     sudo "chown -R hadoop.hadoop #{logDir}"
 
     sudo "/etc/init.d/service-nanny start"
-    sudo "/etc/init.d/service-nanny reload"
+    sudo "/etc/init.d/service-nanny restart"
 end
 
 $targetDir="/home/hadoop/.versions"
 $runDir="/mnt/var/run/drill"
 $logDir="/mnt/var/log/drill"
-if is_master
-    cleanUp($targetDir, $runDir, $logDir)
-    installDrill($targetDir, $runDir, $logDir)
-end
+
+cleanUp($targetDir, $runDir, $logDir)
+installDrill($targetDir, $runDir, $logDir)
