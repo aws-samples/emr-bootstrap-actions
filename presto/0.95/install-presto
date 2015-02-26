@@ -287,10 +287,41 @@ if File.exist? "/home/hadoop/hive/bin/hive-init"
 end
 run "ln -s #{@presto_home} /home/hadoop/presto-server"
 
+def launchMetaStoreLauncher
+	open("/tmp/start-metastore", 'w') do |f|
+	  	f.write("
+	  		#!/bin/bash
+			while true; do
+			HIVE_SERVER=$(ps aux | grep hiveserver2 | grep -v grep | awk '{print $2}')
+			if [ $HIVE_SERVER ]; then
+			        sleep 10
+			        echo Hive Server Running, Lets Check the Metastore
+			        STORE_PID=$(ps aux | grep -i metastore | grep -v grep | grep -v \"start-metastore\"| awk '{print $2}')
+			        if [ \"$STORE_PID\" ]; then
+			                for pid in $STORE_PID; do
+			                        echo killing pid $pid
+			                        sudo kill -9 $pid
+			                done
+			        fi
+			        echo Launching Metastore
+			        /home/hadoop/hive/bin/hive --service metastore -p #{@parsed[:port]} 2>&1 >> /mnt/var/log/apps/hive-metastore.log &
+			        exit 0
+			fi
+			echo Hive Server Not Running Yet
+			sleep 10;
+			done
+	  	")
+	end
+	run "chmod +x /tmp/start-metastore"
+	run "/tmp/start-metastore 2>&1 >> /mnt/var/log/apps/meta-store-starter.log &"
+end
+
 #Set The MetaStore
 if clusterMetaData['isMaster'] == true
 
+launchMetaStoreLauncher
 
+=begin
 	if File.exist? "/home/hadoop/hive/bin/hive-init"
       File.open('/home/hadoop/hive/bin/hive-init', 'a') { |f|
         f.write("\n/home/hadoop/hive/bin/hive --service metastore -p #{@parsed[:port]} >> /mnt/var/log/apps/hive-metastore.log &\n")
@@ -309,6 +340,7 @@ if clusterMetaData['isMaster'] == true
         run "sh /home/hadoop/hive/bin/init-hive-dfs.sh &"
         run "/home/hadoop/hive/bin/hive --service metastore -p #{@parsed[:port]} >> /mnt/var/log/apps/hive-metastore.log &"
       end
+=end
 
 end
 	
@@ -332,11 +364,14 @@ def reloadIC
     sudo '/etc/init.d/instance-controller start'
   end
 end
+
+
 #sudo "/etc/init.d/service-nanny stop"
 #sudo "/etc/init.d/service-nanny start"
 
 #sudo "/etc/init.d/instance-controller stop"
 #sudo "/etc/init.d/instance-controller start"
+
 reloadServiceNanny
 #reloadIC
 puts "If Nothing Went Wrong, You should now have a Latest Version of Presto Installed"
