@@ -53,7 +53,7 @@ LOCATION "s3://support.elasticmapreduce/bootstrap-actions/presto/0.95/Query_Samp
 
 #> presto-cli --catalog hive
 show tables; 
-SELECT name,COUNT(name) GROUP BY name;
+SELECT name,COUNT(name) GROUP BY name FROM test;
 ```
 
 
