@@ -21,7 +21,7 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
    **If no version is given, it will install the latest version available for the EMR Hadoop version.**
 
 -g   
-   Installs Ganglia metrics configuration for Spark
+   Installs Ganglia metrics configuration for Spark (requires Ganglia to be installed, see http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/UsingEMR_Ganglia.html)
 
 -x   
    Prepares the default Spark config for dedicated Spark single application use [1 executor per node, num of executors equivalent to core nodes at creation of cluster, all memory/vcores allocated]
@@ -44,7 +44,7 @@ See [VersionInformation.md](VersionInformation.md) for detailed Spark version in
 
 
 #### Example:
-Using AWS CLI:
+Using AWS CLI (for more on AWS CLI, see http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html):
 ```
 aws emr create-cluster --name SparkCluster --ami-version 3.3 --instance-type m3.xlarge --instance-count 3 \
   --ec2-attributes KeyName=<MYKEY> --applications Name=Hive \
