@@ -1,7 +1,7 @@
 Introduction to Spark
 =====================
 
-For the official documentation regarding Spark please see https://spark.apache.org/.  The books ["Learning Spark: Lightning-Fast Big Data Analysis"](http://www.amazon.com/Learning-Spark-Lightning-Fast-Data-Analysis/dp/1449358624/ref=sr_1_1?ie=UTF8&qid=1425312574&sr=8-1&keywords=apache+spark) and ["Advanced Analytics with Spark: Patterns for Learning from Data at Scale"](http://www.amazon.com/Advanced-Analytics-Spark-Patterns-Learning/dp/1491912766/ref=sr_1_2?ie=UTF8&qid=1425312574&sr=8-2&keywords=apache+spark) are good resources.  Installing and configuring Spark on EMR can be found at [/spark/README.md](README.md).  Examples of using Spark with EMR can be found at [/examples/](examples/README.md).
+For the official documentation regarding Spark please see https://spark.apache.org/.  The books ["Learning Spark: Lightning-Fast Big Data Analysis"](http://www.amazon.com/Learning-Spark-Lightning-Fast-Data-Analysis/dp/1449358624/ref=sr_1_1?ie=UTF8&qid=1425312574&sr=8-1&keywords=apache+spark) and ["Advanced Analytics with Spark: Patterns for Learning from Data at Scale"](http://www.amazon.com/Advanced-Analytics-Spark-Patterns-Learning/dp/1491912766/ref=sr_1_2?ie=UTF8&qid=1425312574&sr=8-2&keywords=apache+spark) are good resources.  Installing and configuring Spark on EMR can be found at [/spark/README.md](/../README.md).  Examples of using Spark with EMR can be found at [/examples/](README.md).
 
 
 ## What is Spark?
@@ -47,8 +47,8 @@ For full details about running Spark on YARN please see https://spark.apache.org
 
 ## How do I learn Spark?
 
-* Installing and configuring Spark on EMR can be found at [/spark/README.md](README.md).
+* Installing and configuring Spark on EMR can be found at [/spark/README.md](/../README.md).
 * [Spark's quick start documentation](http://spark.apache.org/docs/latest/quick-start.html)
 * ["Learning Spark: Lightning-Fast Big Data Analysis"](http://www.amazon.com/Learning-Spark-Lightning-Fast-Data-Analysis/dp/1449358624/ref=sr_1_1?ie=UTF8&qid=1425312574&sr=8-1&keywords=apache+spark)   
 * ["Advanced Analytics with Spark: Patterns for Learning from Data at Scale"](http://www.amazon.com/Advanced-Analytics-Spark-Patterns-Learning/dp/1491912766/ref=sr_1_2?ie=UTF8&qid=1425312574&sr=8-2&keywords=apache+spark)   
-*   Examples of using Spark with EMR can be found at [/examples/](examples/README.md)
+*   Examples of using Spark with EMR can be found at [/examples/](README.md)
