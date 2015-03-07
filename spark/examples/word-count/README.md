@@ -14,7 +14,8 @@ Download the two files and build this project using SBT. Keep in mind to maintai
 ./src
 ./src/main
 ./src/main/scala
-./src/main/scala/WordCount.scala```
+./src/main/scala/WordCount.scala
+```
 
 #Submitting code to cluster
 Copy your project JAR to your [Amazon EMR] cluster running Spark and from command line run the following command. This will submit our spark job to cluster and print the results on screen. 
