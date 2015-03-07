@@ -21,4 +21,3 @@ Copy your project JAR to your [Amazon EMR] cluster running Spark and from comman
 
 ```MASTER=yarn-client /home/hadoop/spark/bin/spark-submit --class WordCount path/to/JAR/wordcount_2.10-1.0.jar```
 
-
