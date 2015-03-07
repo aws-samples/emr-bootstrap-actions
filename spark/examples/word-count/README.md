@@ -6,11 +6,6 @@ This project has two files
 - ``build.sbt`` File containing the build defination
 - ```WordCount.scala``` Our word count code
 
-# Prerequisites
-- Amazon Web Services account
-- [AWS Command Line Interface (CLI)]
-- Amazon EMR cluster running Apache Spark
-
 # Build using SBT
 Download the two files and build this project using SBT. Keep in mind to maintain the directory structure
 
@@ -26,6 +21,4 @@ Copy your project JAR to your [Amazon EMR] cluster running Spark and from comman
 
 ```MASTER=yarn-client /home/hadoop/spark/bin/spark-submit --class WordCount path/to/JAR/wordcount_2.10-1.0.jar```
 
-[Amazon EMR]:http://aws.amazon.com/elasticmapreduce/
-[AWS Command Line Interface (CLI)]:http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html
 
