@@ -11,8 +11,15 @@ This project has two files
 - [AWS Command Line Interface (CLI)]
 - Amazon EMR cluster running Apache Spark
 
-# How to build
-Build this project using SBT
+# Build using SBT
+Download the two files and build this project using SBT. Keep in mind to maintain the directory structure
+
+```
+./build.sbt
+./src
+./src/main
+./src/main/scala
+./src/main/scala/WordCount.scala```
 
 #Submitting code to cluster
 Copy your project JAR to your [Amazon EMR] cluster running Spark and from command line run the following command. This will submit our spark job to cluster and print the results on screen. 
