@@ -13,9 +13,14 @@ Examples Index
 - [How to execute a Spark application via EMR step non-interactively, examples with spark-submit](spark-submit-via-step.md)
 
 
-# Reading input from various sources and formats
+# Code examples
+
+- [A basic WordCount (Scala)](word-count/README.md)
 
 - [How to read LZO files](reading-lzo-files.md)
+
+- [Reading input with custom Hadoop input formats, newAPIHadoopFile() (Java)](spark-java-TeraInputFormat-count.md)
+
 
 # Other references
 
