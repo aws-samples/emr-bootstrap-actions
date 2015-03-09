@@ -40,7 +40,7 @@ default	1.1	python	s3://support.elasticmapreduce/spark/install-spark-1.x.py	s3:/
 3	1.0.2	python	s3://support.elasticmapreduce/spark/ami-3.1.1/install-spark-1.0.2.py
 3.0	default	ruby	s3://support.elasticmapreduce/spark/1.0.0/install-spark-shark-yarn.rb-v2
 3.0	1.0.0	ruby	s3://support.elasticmapreduce/spark/1.0.0/install-spark-shark-yarn.rb-v2
-2.4	default	bash	s3://elasticmapreduce/samples/spark/0.8.1/install-spark-shark.sh
-2.4	0.8.1	bash	s3://elasticmapreduce/samples/spark/0.8.1/install-spark-shark.sh
-2.3	default	bash	s3://elasticmapreduce/samples/spark/0.8.1/install-spark-shark.sh
-2.3	0.8.1	bash	s3://elasticmapreduce/samples/spark/0.8.1/install-spark-shark.sh
+2.4 default bash  s3://support.elasticmapreduce/spark/0.8.1/install-spark-shark.sh
+2.4 0.8.1 bash  s3://support.elasticmapreduce/spark/0.8.1/install-spark-shark.sh
+2.3 default bash  s3://support.elasticmapreduce/spark/0.8.1/install-spark-shark.sh
+2.3 0.8.1 bash  s3://support.elasticmapreduce/spark/0.8.1/install-spark-shark.sh
