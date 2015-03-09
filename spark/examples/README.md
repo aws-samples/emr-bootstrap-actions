@@ -15,7 +15,7 @@ Examples Index
 
 # Code examples
 
-- [A basic WordCount (Scala)](word-count/README.md)
+- [A basic WordCount (Scala)](word-count/)
 
 - [How to read LZO files](reading-lzo-files.md)
 
