@@ -49,6 +49,6 @@ bash configure-spark.bash spark.metrics.conf=/home/hadoop/spark/conf/ganglia.met
 #restart local gmond and gmetad if present
 sudo pkill gmeta
 sudo pkill gmond
-sudo /usr/sbin/gmond -c /etc/gmond.conf
+sudo /usr/sbin/gmond -c /etc/ganglia/gmond.conf
 
 exit 0
