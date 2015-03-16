@@ -5,6 +5,8 @@ Examples Index
 
 - [How to install Spark on EMR](../README.md)
 
+- [Building a custom Spark distribution for EMR](building-spark-for-emr.md)
+
 
 # Basic application use
 
@@ -16,6 +18,8 @@ Examples Index
 # Code examples
 
 - [A basic WordCount (Scala)](word-count/)
+
+- [A basic WordCount (Scala) using SparkSQL](wiki-spark-sql/)
 
 - [How to read LZO files](reading-lzo-files.md)
 
