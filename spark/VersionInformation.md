@@ -28,7 +28,7 @@ To request a specific Spark version build use "-v" to request a specific build v
  * Spark 1.1.0.h (same as "g", rebuilt with git repo)  [NOTE: Last version of 1.1.0 release ]
 
 
-* Hadoop 2.4.0 (AMI 3.3.x)
+* Hadoop 2.4.0 (AMI 3.3.x and 3.4.x)
  * Spark 1.1.1.a (Initial version of Spark's 1.1.1 release with select changes for working on EMR)
  * Spark 1.1.1.b (Include SPARK-3595 for EMR S3 output without temporary directory)
  * Spark 1.1.1.c (Change to class path for hadoop-provided profile build, Fix to support hive-site.xml and hive-default.xml with spark-sql)
@@ -36,8 +36,10 @@ To request a specific Spark version build use "-v" to request a specific build v
  * Spark 1.1.1.e (SparkSQL support for EMR S3 output without temporary directory)
  * --
  * Spark 1.2.0.a (Initial build of Spark's 1.2.0 release)
- * *Spark 1.2.1.a (Initial build of Spark's 1.2.1 release)*
+ * Spark 1.2.1.a (Initial build of Spark's 1.2.1 release)
 
+* Hadoop 2.4.0 (AMI 3.5.x)
+ * *Spark 1.3.0.a (Initial build of Spark's 1.3.0 release)*
 
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
 * branch-1.1 ( "-v 1.1 -b \<buildId\>")
