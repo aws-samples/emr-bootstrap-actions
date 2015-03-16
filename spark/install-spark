@@ -285,13 +285,13 @@ then
         then
                 if [ "$REGION" == "eu-central-1" ]
                 then
-                        CONFIG_FIELDS_ARRAY[6]="s3://eu-central-1.support.elasticmapreduce/spark/maximize-spark-default-config"
+                        CONFIG_FIELDS_ARRAY[5]="s3://eu-central-1.support.elasticmapreduce/spark/maximize-spark-default-config"
                 else
-                        CONFIG_FIELDS_ARRAY[6]="s3://support.elasticmapreduce/spark/maximize-spark-default-config"
+                        CONFIG_FIELDS_ARRAY[5]="s3://support.elasticmapreduce/spark/maximize-spark-default-config"
                 fi
         fi
 
-        CMDOUT=$(hadoop fs -get "${CONFIG_FIELDS_ARRAY[6]}" $TMPLOCATION/maximize-spark-default-config)
+        CMDOUT=$(hadoop fs -get "${CONFIG_FIELDS_ARRAY[5]}" $TMPLOCATION/maximize-spark-default-config)
         CMDSIG=$?
 
         if [ "$CMDSIG" -ne 0 ]

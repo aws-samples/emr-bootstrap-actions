@@ -48,8 +48,6 @@ spark_log_dir = "/mnt/var/log/apps"
 scala_home = os.path.join(hadoop_apps,ScalaBase)
 lock_file = '/tmp/spark-installed'
 
-# Spark logs location used by Spark History server
-spark_evlogs = "hdfs:///spark-logs"
 
 subprocess.check_call(["/bin/mkdir","-p",tmp_dir])
 
@@ -115,8 +113,7 @@ def config():
 	spark_defaults_tmp_location = os.path.join(tmp_dir,"spark-defaults.conf")
 	spark_default_final_location = os.path.join(spark_home,"conf")
 	with open(spark_defaults_tmp_location,'a') as spark_defaults:
-		spark_defaults.write("spark.eventLog.enabled  true\n")
-		spark_defaults.write("spark.eventLog.dir      {0}\n".format(spark_evlogs))
+		spark_defaults.write("spark.eventLog.enabled  false\n") #default to off, when history server is started will change to true
 		spark_defaults.write("spark.executor.extraJavaOptions         -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:MaxHeapFreeRatio=70\n")
 		spark_defaults.write("spark.driver.extraJavaOptions         -Dspark.driver.log.level={0}\n".format(SparkDriverLogLevel))
 	subprocess.check_call(["/bin/mv",spark_defaults_tmp_location,spark_default_final_location])

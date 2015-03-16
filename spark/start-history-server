@@ -6,6 +6,8 @@ import glob
 import sys
 
 # various paths
+CONFIGURESPARK="s3://support.elasticmapreduce/spark/configure-spark.bash"
+
 hadoop_home = "/home/hadoop"
 hadoop_apps = "/home/hadoop/.versions"
 spark_home = "/home/hadoop/spark"
@@ -17,6 +19,11 @@ spark_evlogs = "hdfs:///spark-logs"
 
 # create hdfs folder for event logs (actually not needed, it will fail if run as BA)
 subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-mkdir","-p",spark_evlogs])
+
+# download configure script and run to adjust config
+subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-get",CONFIGURESPARK])
+subprocess.check_call(["bash","configure-spark.bash","spark.eventLog.enabled=true", "spark.eventLog.dir=hdfs:///spark-logs/"])
+
 # start spark history server
 history_server_script = os.path.join(spark_home,"sbin","start-history-server.sh")
 subprocess.check_call([history_server_script, spark_evlogs])
