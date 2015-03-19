@@ -3,7 +3,7 @@ Building a Spark Distribution for EMR
 
 # DISCLAIMER
 
-The following information is for sharing with community on how to compile/build a custom installation of [Spark](http://spark.apache.org) for the EMR environment.   It does not nesecarilly represent how a "current" build of Spark may be done and provided by AWS or affliates.   Please use at your own risk.
+The following information is for sharing with community on how to compile/build a custom installation of [Spark](http://spark.apache.org) for the EMR environment.   It does not necessarily represent how a "current" build of Spark may be done and provided by AWS or affiliates.   Please use at your own risk.
 
 # References
 
@@ -26,7 +26,7 @@ Checkout branch/tag of interest to a local branch
 git checkout -b spark-custom branch-1.3
 ```
 
-Make madifications to source as desired then commit
+Make modifications to source as desired then commit
 
 Create a clean source source tar ball of spark-custom
 
@@ -54,7 +54,7 @@ find . -name "*Kinesis*.java" | grep examples | xargs -n 1 -I {} cp {} dist/exam
 find . -name "*Kinesis*.scala" | grep examples | xargs -n 1 -I {} cp {} dist/examples/src/main/scala/org/apache/spark/examples/streaming/. 
 ```
 
-Tar and gzipp the distriburtion now located in `dist/`
+Tar and gzip the distriburtion now located in `dist/`
 
 ## Upload and install
 
