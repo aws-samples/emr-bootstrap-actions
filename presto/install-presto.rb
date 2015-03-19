@@ -208,8 +208,8 @@ end
 #parses the configurable options given with the bootstrap action. All are optional
 def parseOptions
   configurable_options = {
-      :s3_path_to_presto_server_bin => "s3://thaparp-samples/presto/0.78-with-patches/presto-server-0.78.tar.gz",
-      :s3_path_to_presto_cli => "s3://thaparp-samples/presto/0.78-with-patches/presto-cli-0.78-executable.jar",
+      :s3_path_to_presto_server_bin => "s3://support.elasticmapreduce/bootstrap-actions/presto/presto-server-0.78-roles.tar.gz",
+      :s3_path_to_presto_cli => "s3://support.elasticmapreduce/bootstrap-actions/presto/presto-cli-0.78-executable.jar",
       :hive_metastore_port => "9083"
   }
 
