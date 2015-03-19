@@ -1,8 +1,6 @@
 Running Presto on EMR:
 ======================
 Currently presto is supported on EMR through a bootstrap action. 
-* s3 path : s3://beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb 
-* direct link : https://s3.amazonaws.com/beta.elasticmapreduce/bootstrap-actions/presto/install-presto.rb
 
 Bootstrap Action Arguments:
 ==========================
