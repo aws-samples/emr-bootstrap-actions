@@ -21,7 +21,7 @@ sudo("cp /mnt/var/lib/instance-controller/extraInstanceData.json" +
 @run_dir = "/home/hadoop/elasticsearch/"
 # this is where additional logs are sent in case terminal output needs to be caught
 @log_dir = "/home/hadoop/elasticsearch/"
-@elasticsearch_version = "1.3.1"
+@elasticsearch_version = "1.3.8"
 @elasticsearch_port_master = 9200
 @elasticsearch_port_slaves = 9202
 
@@ -70,7 +70,7 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
 
   install_dir = "#{target_dir}elasticsearch-#{elasticsearch_version}/"
   # installing elasticsearch aws plugin
-  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.2.0")
+  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.3.0")
   # replace yaml with new config file
   run("mv elasticsearch.yml #{install_dir}config/elasticsearch.yml")
   puts("Starting elasticsearch in the background. Logs found in \'#{log_dir}elasticsearch.log\'")
@@ -78,14 +78,14 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
 end
 
 def install_hadoop_plugin(target_dir, run_dir)
-  run("wget https://download.elasticsearch.org/hadoop/elasticsearch-hadoop-2.0.1.zip --no-check-certificate")
-  run("mv elasticsearch-hadoop-2.0.1.zip #{target_dir}")
-  run("unzip #{target_dir}elasticsearch-hadoop-2.0.1.zip -d #{target_dir}")
-  run("echo export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:#{@target_dir}elasticsearch-hadoop-2.0.1/dist/* >> ~/.bashrc")
+  run("wget https://download.elasticsearch.org/hadoop/elasticsearch-hadoop-2.0.2.zip --no-check-certificate")
+  run("mv elasticsearch-hadoop-2.0.2.zip #{target_dir}")
+  run("unzip #{target_dir}elasticsearch-hadoop-2.0.2.zip -d #{target_dir}")
+  run("echo export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:#{@target_dir}elasticsearch-hadoop-2.0.2/dist/* >> ~/.bashrc")
 end
 
 def clean_up
-  run "rm -Rf #{@target_dir}elasticsearch-hadoop-2.0.1.zip"
+  run "rm -Rf #{@target_dir}elasticsearch-hadoop-2.0.2.zip"
   run "rm elasticsearch-#{@elasticsearch_version}.tar.gz"
 end
 
