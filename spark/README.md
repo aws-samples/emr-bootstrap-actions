@@ -37,7 +37,7 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 
 #### Current version available:
 
-Spark 1.3.0 with EMR AMI 3.5.x
+Spark 1.3.0 (1.3.0.b) ith EMR AMI 3.5.x
 
 
 See [VersionInformation.md](VersionInformation.md) for detailed Spark version information and previous versions.

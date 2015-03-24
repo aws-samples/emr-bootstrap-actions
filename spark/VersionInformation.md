@@ -39,7 +39,8 @@ To request a specific Spark version build use "-v" to request a specific build v
  * Spark 1.2.1.a (Initial build of Spark's 1.2.1 release)
 
 * Hadoop 2.4.0 (AMI 3.5.x)
- * *Spark 1.3.0.a (Initial build of Spark's 1.3.0 release)* [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.0.a)
+ * Spark 1.3.0.a (Initial build of Spark's 1.3.0 release) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.0.a)
+ * *Spark 1.3.0.b (Minor patches to support S3 direct commit with SparkSQL and disable multipart uploads as workaround)* [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.0.b)
 
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
 * branch-1.1 ( "-v 1.1 -b \<buildId\>")
