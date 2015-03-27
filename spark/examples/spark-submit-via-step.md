@@ -32,7 +32,7 @@ To demonstrate I will step through an example using AWS CLI with current latest 
 This command creates running cluster with Spark installed and uses an optional install-spark argument to override Spark's defaults with a dedicated Spark application configuration (1 executor per node, use as much memory as possible, see [install-spark readme for more details](../README.md)) and enable logging to a S3 bucket.
 
 ```
-aws emr create-cluster --name EMR-Spark-Step-Example --ami-version 3.3 \
+aws emr create-cluster --name EMR-Spark-Step-Example --ami-version 3.6 \
 --instance-type=m3.2xlarge --instance-count 3 --applications Name=Hive  \
 --use-default-roles --ec2-attributes KeyName=<YOUR_EC2_KEY_NAME>,SubnetId=<YOUR_VPC_SUBNET_ID> \
 --log-uri s3://<YOUR_BUCKET>/<YOUR_PATH> \
@@ -73,7 +73,7 @@ The above examples logged the step output and YARN application and container out
 ## Example of an all-in-one AWS CLI command that creates the cluster, runs a Spark application, then terminates
 
 ```
-aws emr create-cluster --name EMR-Spark-Step-Example --ami-version 3.3 \
+aws emr create-cluster --name EMR-Spark-Step-Example --ami-version 3.6 \
 --instance-type=m3.2xlarge --instance-count 3 --applications Name=Hive  \
 --use-default-roles --ec2-attributes KeyName=<YOUR_EC2_KEY_NAME>,SubnetId=<YOUR_VPC_SUBNET_ID> \
 --log-uri s3://<YOUR_BUCKET>/<YOUR_PATH> \

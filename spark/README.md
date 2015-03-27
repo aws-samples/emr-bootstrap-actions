@@ -37,7 +37,7 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 
 #### Current version available:
 
-Spark 1.3.0 (1.3.0.c) with EMR AMI 3.5.x and later
+Spark 1.3.0 (1.3.0.d) with EMR AMI 3.5.x and later
 
 
 See [VersionInformation.md](VersionInformation.md) for detailed Spark version information and previous versions.
@@ -46,13 +46,13 @@ See [VersionInformation.md](VersionInformation.md) for detailed Spark version in
 #### Example:
 Using AWS CLI (for more on AWS CLI, see http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html):
 ```
-aws emr create-cluster --name SparkCluster --ami-version 3.3 --instance-type m3.xlarge --instance-count 3 \
+aws emr create-cluster --name SparkCluster --ami-version 3.6 --instance-type m3.xlarge --instance-count 3 \
   --ec2-attributes KeyName=<MYKEY> --applications Name=Hive \
   --bootstrap-actions Path=s3://support.elasticmapreduce/spark/install-spark
 ```
 EMR Ruby CLI:
 ```
-elastic-mapreduce --create --name spark --ami-version 3.3 --bootstrap-action s3://support.elasticmapreduce/spark/install-spark \
+elastic-mapreduce --create --name spark --ami-version 3.6 --bootstrap-action s3://support.elasticmapreduce/spark/install-spark \
   --instance-count 4 --instance-type m3.xlarge --alive 
 ```
 
@@ -73,14 +73,14 @@ _Currently works for Spark 1.x._  The history server will be reachable on the ma
 #### Example:
 Using AWS CLI:
 ```
-aws emr create-cluster --name SparkCluster --ami-version 3.3 --instance-type m3.xlarge --instance-count 3 \
+aws emr create-cluster --name SparkCluster --ami-version 3.6 --instance-type m3.xlarge --instance-count 3 \
   --ec2-attributes KeyName=<MYKEY> --applications Name=Hive \
   --bootstrap-actions Path=s3://support.elasticmapreduce/spark/install-spark  \
   --steps Name=SparkHistoryServer,Jar=s3://elasticmapreduce/libs/script-runner/script-runner.jar,Args=s3://support.elasticmapreduce/spark/start-history-server 
 ```
 EMR Ruby CLI:
 ```
-elastic-mapreduce --create --name spark --ami-version 3.3 --bootstrap-action s3://support.elasticmapreduce/spark/install-spark \
+elastic-mapreduce --create --name spark --ami-version 3.6 --bootstrap-action s3://support.elasticmapreduce/spark/install-spark \
   --instance-count 4 --instance-type m3.xlarge --jar s3://elasticmapreduce/libs/script-runner/script-runner.jar \
   --args "s3://support.elasticmapreduce/spark/start-history-server" --alive
 ```
@@ -98,14 +98,14 @@ A key=value pair of configuration items to add or replace in spark-defaults.conf
 #### Example:
 Using AWS CLI:
 ```
-aws emr create-cluster --name SparkCluster --ami-version 3.3 --instance-type m3.xlarge --instance-count 3 \
+aws emr create-cluster --name SparkCluster --ami-version 3.6 --instance-type m3.xlarge --instance-count 3 \
   --ec2-attributes KeyName=<MYKEY> --applications Name=Hive \
   --bootstrap-actions Path=s3://support.elasticmapreduce/spark/install-spark  \
   --steps Name=SparkHistoryServer,Jar=s3://elasticmapreduce/libs/script-runner/script-runner.jar,Args=s3://support.elasticmapreduce/spark/start-history-server Name=SparkConfigure,Jar=s3://elasticmapreduce/libs/script-runner/script-runner.jar,Args=[s3://support.elasticmapreduce/spark/configure-spark.bash,spark.default.parallelism=100,spark.locality.wait.rack=0]
 ```
 EMR Ruby CLI:
 ```
-elastic-mapreduce --create --name spark --ami-version 3.3 --bootstrap-action s3://support.elasticmapreduce/spark/install-spark \
+elastic-mapreduce --create --name spark --ami-version 3.6 --bootstrap-action s3://support.elasticmapreduce/spark/install-spark \
   --instance-count 4 --instance-type m3.xlarge --jar s3://elasticmapreduce/libs/script-runner/script-runner.jar \
   --args "s3://support.elasticmapreduce/spark/start-history-server" --jar s3://elasticmapreduce/libs/script-runner/script-runner.jar \
   --args "s3://support.elasticmapreduce/spark/configure-spark.bash,spark.default.parallelism=100,spark.locality.wait.rack=0" --alive 
