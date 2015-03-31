@@ -1,6 +1,7 @@
 Latest Presto With Java 1.8
 ==========================
-This Bootstrap Action will install Java 1.8 and install and configure Presto 0.95 to work with EMR.
+This Bootstrap Action will install Java 1.8 and install and configure Presto to work with EMR.  
+You can specify a version of presto supported by the BA, or specify your own compiled version.
 
 ###Bootstrap Location
 s3://support.elasticmapreduce/bootstrap-actions/presto/0.95/install-presto
@@ -49,12 +50,12 @@ Only tested against AMI 3.3.2 >
 Using the AWS CLI tools you can launch a cluster with the following command: 
 ####Default Options
 ```
-aws emr create-cluster --name="PRESTO-0-95" --ami-version=3.3.2 --applications Name=hive --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge --bootstrap-action Name="install presto",Path="s3://support.elasticmapreduce/bootstrap-actions/presto/runnable/install-presto"
+aws emr create-cluster --name="PRESTO" --ami-version=3.3.2 --applications Name=hive --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge --bootstrap-action Name="install presto",Path="s3://support.elasticmapreduce/bootstrap-actions/presto/runnable/install-presto"
 ```
 
 ####Optional Params
 ```
-aws emr create-cluster --name="PRESTO-0-95" --ami-version=3.3.2 --applications Name=hive --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge --bootstrap-action Name="install presto",Path="s3://support.elasticmapreduce/bootstrap-actions/presto/runnable/install-presto",Args="[-p,8989,-m,1024,-n,128]"
+aws emr create-cluster --name="PRESTO" --ami-version=3.3.2 --applications Name=hive --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge --bootstrap-action Name="install presto",Path="s3://support.elasticmapreduce/bootstrap-actions/presto/runnable/install-presto",Args="[-p,8989,-m,1024,-n,128]"
 ```
 
 ###Running Queries
