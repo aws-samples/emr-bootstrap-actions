@@ -1,4 +1,4 @@
-Presto 0.95 With Java 1.8
+Latest Presto With Java 1.8
 ==========================
 This Bootstrap Action will install Java 1.8 and install and configure Presto 0.95 to work with EMR.
 
@@ -40,6 +40,10 @@ Only tested against AMI 3.3.2 >
 - [JSON tuple generation](https://github.com/facebook/presto/pull/1724)
 - [Foreground metastore refresh](https://github.com/facebook/presto/pull/1744)
 - [Handling s3 Socket Timeout](https://github.com/facebook/presto/pull/1478)
+
+###Supported Versions
+ - 0.99
+ - 0.95
 
 ###Examples
 Using the AWS CLI tools you can launch a cluster with the following command: 
