@@ -24,6 +24,8 @@ Usage: presto-install [OPTIONS]
         --binary                     Ex : s3://mybuctet/compiled/presto-compiled.tar.gz
     -c [ Install Presto-CLI. By default set to true ],
         --install-cli                Ex : false
+    -M [ Location of Already Running Hive MetaStore. This will stop the BA from launching the Hive MetaStore Service on the Master Instance ],
+        --metastore-uri              Ex : thrift://192.168.0.1:9083
     -h, --help                       Display this message
 ```
 
@@ -32,6 +34,7 @@ This BA requires that you also install Hive 13 on your cluster as it uses Hive a
 Only tested against AMI 3.3.2 >
 
 ###Changes
+- 07/04/2015 : Added support to specify a Remote MetaStore Service
 - 31/03/2015 : Added Support for Selective CLI installation and to specify your own compiled Presto Binary
 - 26/02/2015 : Added Support for AWS EC2 Roles 
 - 26/02/2015 : Backported S3PrestoFileSystem Patches from 0.96 [ Development ]

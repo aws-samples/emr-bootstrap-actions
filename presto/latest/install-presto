@@ -51,6 +51,11 @@ def parseOptions
 	      		config_options[:cli] = cli
 	    end
 
+	    opt.on("-M",'--metastore-uri [ Location of Already Running Hive MetaStore. This will stop the BA from launching the Hive MetaStore Service on the Master Instance ]',
+	           "Ex : thrift://192.168.0.1:9083") do |metaURI|
+	      		config_options[:metaURI] = metaURI
+	    end
+
 	    opt.on('-h', '--help', 'Display this message') do
 	      puts opt
 	      exit
@@ -175,7 +180,14 @@ def setHiveProperties(metaData,parsed)
 	config << "hive.s3.max-client-retries=50"
 	config << "connector.name=hive-hadoop2"
 	config << "hive.s3.socket-timeout=2m"
-	config << "hive.metastore.uri=thrift://#{metaData['masterPrivateDnsName']}:#{parsed[:port]}"
+	
+	#Set MetaStore Local Or Remote
+	if !parsed[:metaURI]
+		config << "hive.metastore.uri=thrift://#{metaData['masterPrivateDnsName']}:#{parsed[:port]}"
+	else
+		config << "hive.metastore.uri=#{parsed[:metaURI]}"
+	end
+	
 	config << "hive.metastore-cache-ttl=20m"
 	config << "hive.s3.staging-directory=/mnt/tmp/"
 	config << "hive.s3.use-instance-credentials=#{metaData['roles']}"
@@ -385,8 +397,9 @@ end
 #Set The MetaStore
 if clusterMetaData['isMaster'] == true
 
-launchMetaStoreLauncher
-
+	if !@parsed[:metaURI]
+		launchMetaStoreLauncher
+	end
 end
 	
 
