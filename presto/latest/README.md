@@ -4,7 +4,7 @@ This Bootstrap Action will install Java 1.8 and install and configure Presto to 
 You can specify a version of presto supported by the BA, or specify your own compiled version.
 
 ###Bootstrap Location
-s3://support.elasticmapreduce/bootstrap-actions/presto/0.95/install-presto
+s3://support.elasticmapreduce/bootstrap-actions/presto/runnable/install-presto
 
 ###Usage
 The Bootstrap Action takes these optional arguments. 
