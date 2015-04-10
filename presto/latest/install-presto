@@ -7,7 +7,10 @@ require 'optparse'
 def parseOptions
 	config_options = {
 		:port => 9083,
-		:presto_home => "/home/hadoop/.versions/presto-server-0.95/",
+		#:presto_home => "/home/hadoop/.versions/presto-server-0.95/",
+		:cli => true,
+		#:binary => "s3://support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-server-0-95.tar.gz",
+		:version => "0.99"
 	}
 
 	opt_parser = OptionParser.new do |opt|
@@ -33,9 +36,24 @@ def parseOptions
 	      		config_options[:nurse] = nurse
 	    end
 
-	    opt.on("-v",'--version [ Version of Presto to Install. For Future Use, not currently active ]',
+	    opt.on("-v",'--version [ Version of Presto to Install. See README for supported versions ]',
 	           "Ex : 0.95 )") do |version|
 	      		config_options[:version] = version
+	    end
+
+	    opt.on("-b",'--binary [ Location of Self Compiled Binary of Presto. See README for details on what package structure must look like. ]',
+	           "Ex : s3://mybuctet/compiled/presto-compiled.tar.gz") do |bin|
+	      		config_options[:binary] = bin
+	    end
+
+	    opt.on("-c",'--install-cli [ Install Presto-CLI. By default set to true ]',
+	           "Ex : false") do |cli|
+	      		config_options[:cli] = cli
+	    end
+
+	    opt.on("-M",'--metastore-uri [ Location of Already Running Hive MetaStore. This will stop the BA from launching the Hive MetaStore Service on the Master Instance ]',
+	           "Ex : thrift://192.168.0.1:9083") do |metaURI|
+	      		config_options[:metaURI] = metaURI
 	    end
 
 	    opt.on('-h', '--help', 'Display this message') do
@@ -49,9 +67,21 @@ def parseOptions
 end
 
 @parsed = parseOptions
-@presto_home = @parsed[:presto_home]
-
 puts "Installing Presto With Java 1.8 Requirement"
+
+unless @parsed[:binary]
+	@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-server.tar.gz"
+else
+	@parsed[:version] = "user-compiled"
+end
+
+unless @parsed[:presto_home]
+	@presto_home = "/home/hadoop/.versions/presto-server-#{@parsed[:version]}/"
+else
+	@presto_home = @parsed[:presto_home]
+end
+
+puts "Uing Binary From: #{@parsed[:binary]} and installing to #{@presto_home}"
 
 def run(cmd)
   if ! system(cmd) then
@@ -77,6 +107,9 @@ def getClusterMetaData
 	jobFlow = JSON.parse(File.read('/mnt/var/lib/info/job-flow.json'))
 	userData = JSON.parse(Net::HTTP.get(URI('http://169.254.169.254/latest/user-data/')))
 
+	#Determine if Instance Has IAM Roles
+	req = Net::HTTP.get_response(URI('http://169.254.169.254/latest/meta-data/iam/security-credentials/'))
+	metaData['roles'] = (req.code.to_i == 200) ? true : false
 
 	metaData['instanceId'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/instance-id/'))
 	metaData['instanceType'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/instance-type/'))
@@ -147,9 +180,17 @@ def setHiveProperties(metaData,parsed)
 	config << "hive.s3.max-client-retries=50"
 	config << "connector.name=hive-hadoop2"
 	config << "hive.s3.socket-timeout=2m"
-	config << "hive.metastore.uri=thrift://#{metaData['masterPrivateDnsName']}:#{parsed[:port]}"
+	
+	#Set MetaStore Local Or Remote
+	if !parsed[:metaURI]
+		config << "hive.metastore.uri=thrift://#{metaData['masterPrivateDnsName']}:#{parsed[:port]}"
+	else
+		config << "hive.metastore.uri=#{parsed[:metaURI]}"
+	end
+	
 	config << "hive.metastore-cache-ttl=20m"
 	config << "hive.s3.staging-directory=/mnt/tmp/"
+	config << "hive.s3.use-instance-credentials=#{metaData['roles']}"
 
 	puts "Setting Hive Catalog With the Following Properties:"
 	puts config.join(" , ")
@@ -173,6 +214,7 @@ def setJVMConfig(metaData)
 	config << "-XX:ReservedCodeCacheSize=150M"
 	config << "-Xbootclasspath/p:"
 	config << "-Dhive.config.resources=/home/hadoop/conf/core-site.xml,/home/hadoop/conf/hdfs-site.xml"
+	config << "-Djava.library.path=/home/hadoop/lib/native/"
 
 	return config.join("\n")
 end
@@ -220,7 +262,25 @@ def buildCLIWrapper
 
 	config << "#!/bin/bash"
 	config << "export PATH=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.31-2.b13.5.amzn1.x86_64/jre/bin/:$PATH"
-	config << "#{@presto_home}/presto-cli-0.95-executable.jar $@"
+	config << "#{@presto_home}/presto-cli-executable.jar $@"
+
+	return config.join("\n")
+end
+
+def buildPrestoLauncher
+	config = []
+
+	config << "#!/bin/sh -eu"
+	config << "export PATH=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.31-2.b13.5.amzn1.x86_64/jre/bin/:$PATH"
+	config << 'exec "$(/usr/bin/dirname "$0")/launcher.py" "$@"'
+
+	return config.join("\n")
+end
+
+def buildLogProperties
+	config = []
+
+	config << "com.facebook.presto=DEBUG"
 
 	return config.join("\n")
 end
@@ -229,14 +289,22 @@ end
 clusterMetaData = getClusterMetaData
 
 #Now, Lets Fetch The Archives from S3
-run "curl -kLo /tmp/presto-server.tar.gz http://s3.amazonaws.com/support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-server-0-95.tar.gz"
-run "curl -kLo /tmp/presto-cli-0.95-executable.jar http://s3.amazonaws.com/support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-cli-0.95-executable.jar"
+#run "curl -kLo /tmp/presto-server.tar.gz http://s3.amazonaws.com/support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-server-0-95.tar.gz"
+run "/home/hadoop/bin/hdfs dfs -get #{@parsed[:binary]} /tmp/presto-server.tar.gz"
+#run "curl -kLo /tmp/presto-cli-0.95-executable.jar http://s3.amazonaws.com/support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-cli-0.95-executable.jar"
 
 #Extract the Server to its new Home
 run "mkdir -p #{@presto_home}"
+run "mkdir -p #{@presto_home}/etc/catalog/"
 run "tar -xf /tmp/presto-server.tar.gz -C #{@presto_home}"
-run "cp /tmp/presto-cli-0.95-executable.jar #{@presto_home}"
-run "chmod +x #{@presto_home}/presto-cli-0.95-executable.jar"
+
+#Move LZO Library Into Presto Libs
+run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/presto/hadoop-lzo-0.4.19.jar #{@presto_home}/plugin/hive-hadoop2/"
+
+#Fix Launcher For Java 8
+open("#{@presto_home}/bin/launcher", 'w') do |f|
+  	f.puts(buildPrestoLauncher)
+end
 
 #Set config.properties
 open("#{@presto_home}/etc/config.properties", 'w') do |f|
@@ -263,7 +331,7 @@ conf = JSON.generate(configServiceIC)
 open("/tmp/ic-logs.json", 'w') do |f|
   	f.puts(conf)
 end
-`sudo cp /tmp/ic-logs.json /etc/instance-controller/logs.json`
+sudo "cp /tmp/ic-logs.json /etc/instance-controller/logs.json"
 
 #Set Service-Nanny
 conf = JSON.generate(configServiceNanny)
@@ -272,13 +340,23 @@ open("/tmp/sn-presto.conf", 'w') do |f|
 end
 sudo "cp /tmp/sn-presto.conf /etc/service-nanny/presto.conf"
 
-#Create Presto Wrapper
-if clusterMetaData['isMaster'] == true
-	open("/home/hadoop/presto-cli", 'w') do |f|
-	  	f.puts(buildCLIWrapper)
+#Set Log Properties
+open("#{@presto_home}/etc/log.properties", 'w') do |f|
+  	f.puts(buildLogProperties)
+end
+
+#Create Presto Wrapper for CLI if CLI to be installed
+if @parsed[:cli] == true
+	run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-cli-executable.jar /tmp/presto-cli-executable.jar"
+	run "cp /tmp/presto-cli-executable.jar #{@presto_home}"
+	run "chmod +x #{@presto_home}/presto-cli-executable.jar"
+	if clusterMetaData['isMaster'] == true
+		open("/home/hadoop/presto-cli", 'w') do |f|
+		  	f.puts(buildCLIWrapper)
+		end
+		run "chmod +x /home/hadoop/presto-cli"
+		sudo "ln -s /home/hadoop/presto-cli /usr/bin/"
 	end
-	run "chmod +x /home/hadoop/presto-cli"
-	sudo "ln -s /home/hadoop/presto-cli /usr/bin/"
 end
 
 #Set Symnlinkg For Presto to Home-Folder
@@ -319,29 +397,9 @@ end
 #Set The MetaStore
 if clusterMetaData['isMaster'] == true
 
-launchMetaStoreLauncher
-
-=begin
-	if File.exist? "/home/hadoop/hive/bin/hive-init"
-      File.open('/home/hadoop/hive/bin/hive-init', 'a') { |f|
-        f.write("\n/home/hadoop/hive/bin/hive --service metastore -p #{@parsed[:port]} >> /mnt/var/log/apps/hive-metastore.log &\n")
-      }
-    end
-
-	if File.exist? "/home/hadoop/hive/bin/mysqld-hiveserver-setup.sh"
-        puts "mysqld-hiveserver-setup.sh exists therefore run hive-init"
-        #correctMySqlScript
-        # we dont have to run hive-init in later ami's, therefore, else would be triggerred in ami > 3.2.3 or 3.3.0
-        run "sh /home/hadoop/hive/bin/hive-init"
-      else
-        run "sh /home/hadoop/hive/bin/hive-set-up.sh create_log_dirs"
-        run "sh /home/hadoop/hive/bin/hive-set-up.sh setup_mysql"
-        run "sh /home/hadoop/hive/bin/hive-set-up.sh setup_hive_server"
-        run "sh /home/hadoop/hive/bin/init-hive-dfs.sh &"
-        run "/home/hadoop/hive/bin/hive --service metastore -p #{@parsed[:port]} >> /mnt/var/log/apps/hive-metastore.log &"
-      end
-=end
-
+	if !@parsed[:metaURI]
+		launchMetaStoreLauncher
+	end
 end
 	
 
