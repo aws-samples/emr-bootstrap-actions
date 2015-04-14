@@ -7,13 +7,13 @@ set -e -x
 #  --hbase-version - an alternative HBase Verison path to use, default /home/hadoop/.versions/<$HBASE_VERSION>/
 
 PRODUCTNAME=phoenix
-VERSION=2.1.2
+VERSION=3.3.1
 DOWNLOAD_LOCATION=http://s3.amazonaws.com/elasticmapreduce/bootstrap-actions/$PRODUCTNAME/$VERSION/
 HBASE_VERSION=hbase-0.94.7
 
 
 INSTALL_DIR=/home/hadoop/.versions/$HBASE_VERSION/lib/
-PHOENIX_SERVER=$PRODUCTNAME-$VERSION.jar
+PHOENIX_SERVER=$PRODUCTNAME-server-$VERSION.jar
 PHOENIX_PACKAGE_NAME=$PRODUCTNAME-$VERSION-install
 PHOENIX_PACKAGE=$PHOENIX_PACKAGE_NAME.tar
 
