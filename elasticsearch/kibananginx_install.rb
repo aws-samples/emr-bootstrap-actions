@@ -12,10 +12,14 @@ def sudo(cmd)
 end
 
 @is_master = Emr::JsonInfoFile.new('instance')['isMaster'].to_s == 'true'
-@kibana_version = "3.1.0"
-@target_dir = "/etc/nginx/"
+@kibana_version = "4.0.2-linux-x64"
+@target_dir = "/home/hadoop/kibana/"
 @nginx_dir = "/etc/nginx/"
 @es_port_num = 9200
+
+def install_pleaserun
+  run("gem install pleaserun")
+end
 
 def install_kibana(target_dir, kibana_version)
   tarball = "kibana-#{kibana_version}.tar.gz"
@@ -25,31 +29,10 @@ def install_kibana(target_dir, kibana_version)
   sudo("tar xvf " + tarball + " -C " + target_dir)
   install_dir = "#{target_dir}kibana-#{kibana_version}/"
 
-  # replace config.js with new config file
-  hostname = `hostname -f`
-  hostname.gsub!("\n", "")
-  kibana_config_js(hostname)
-  sudo("mv config.js #{install_dir}config.js")
+  sudo("pleaserun --install #{install_dir}/bin/kibana")
+
   install_nginx()
   sudo("chown hadoop.hadoop #{install_dir}")
-end
-
-# returns the kibana config file
-def kibana_config_js(hostname)
-  port_num = @es_port_num
-  File.open("config.js", "w") do |config|
-    config.puts("define([\'settings\'],")
-    config.puts("function (settings) {")
-    config.puts("  return new settings({")
-    config.puts("    elasticsearch: \"http://#{hostname}:#{port_num}\",") 
-    config.puts("    default_route: \'/dashboard/file/default.json',")
-    config.puts("    kibana_index: \"kibana-int\",")
-    config.puts("    panel_names: [\'histogram\', \'map\', \'goal\', \'table\', \'timepicker\'," +
-                " \'text\', \'hits\', \'column\', \'trends\', \'bettermap\', \'query\', " +
-                "'terms\', \'stats\', \'sparklines\']")
-    config.puts("  });")
-    config.puts("});")
-  end
 end
 
 def install_nginx()
@@ -79,14 +62,8 @@ def install_nginx()
     config.puts("  server {")
     config.puts("    listen 80;")
     config.puts("    server_name localhost;")
-    config.puts("    root /etc/nginx/kibana-#{@kibana_version};")
     config.puts("    location / {")
-    config.puts("    }")
-    config.puts("    error_page 404 /404.html;")
-    config.puts("    location = /40x.html {")
-    config.puts("    }")
-    config.puts("    error_page 500 502 503 504 /50x.html;")
-    config.puts("    location = /50x.html {")
+    config.puts("        proxy_pass http://localhost:5601;")
     config.puts("    }")
     config.puts("  }")
     config.puts("}")
@@ -99,6 +76,8 @@ def clean_up
 end
 
 if @is_master
+  install_pleaserun
   install_kibana(@target_dir, @kibana_version)
+  run("sudo service kibana start")
   run("sudo service nginx start")
 end
