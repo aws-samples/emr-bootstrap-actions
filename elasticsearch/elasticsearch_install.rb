@@ -12,6 +12,10 @@ def sudo(cmd)
   run("sudo #{cmd}")
 end
 
+def install_pleaserun
+  sudo("gem2.0 install pleaserun")
+end
+
 @is_master = Emr::JsonInfoFile.new('instance')['isMaster'].to_s == 'true'
 @cluster_name = Emr::JsonInfoFile.new('job-flow')['jobFlowId'].to_s
 sudo("cp /mnt/var/lib/instance-controller/extraInstanceData.json" +
@@ -70,13 +74,12 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
 
   install_dir = "#{target_dir}elasticsearch-#{elasticsearch_version}/"
   # installing elasticsearch aws plugin
-  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.3.0")
+  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.5.0")
   # installing hadoop hdfs snapshot plugin
   run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-repository-hdfs/2.0.2-hadoop2")
   # replace yaml with new config file
   run("mv elasticsearch.yml #{install_dir}config/elasticsearch.yml")
-  puts("Starting elasticsearch in the background. Logs found in \'#{log_dir}elasticsearch.log\'")
-  sudo("#{install_dir}bin/elasticsearch &> #{log_dir}/elasticsearch.log &")
+  sudo("/usr/local/bin/pleaserun --install -p sysv -v lsb-3.1 #{install_dir}/bin/elasticsearch")
 end
 
 def install_hadoop_plugin(target_dir, run_dir)
@@ -91,6 +94,10 @@ def clean_up
   run "rm elasticsearch-#{@elasticsearch_version}.tar.gz"
 end
 
+install_pleaserun
 install_elasticsearch(@target_dir, @run_dir, @log_dir, @elasticsearch_version)
 install_hadoop_plugin(@target_dir, @run_dir)
+
+sudo("service elasticsearch start")
+
 clean_up
