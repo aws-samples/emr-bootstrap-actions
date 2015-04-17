@@ -18,7 +18,7 @@ end
 @es_port_num = 9200
 
 def install_pleaserun
-  run("gem install pleaserun")
+  sudo("gem2.0 install pleaserun")
 end
 
 def install_kibana(target_dir, kibana_version)
@@ -29,9 +29,8 @@ def install_kibana(target_dir, kibana_version)
   sudo("tar xvf " + tarball + " -C " + target_dir)
   install_dir = "#{target_dir}kibana-#{kibana_version}/"
 
-  sudo("pleaserun --install #{install_dir}/bin/kibana")
+  sudo("/usr/local/bin/pleaserun --install -p sysv -v lsb-3.1 #{install_dir}/bin/kibana")
 
-  install_nginx()
   sudo("chown hadoop.hadoop #{install_dir}")
 end
 
@@ -78,6 +77,8 @@ end
 if @is_master
   install_pleaserun
   install_kibana(@target_dir, @kibana_version)
-  run("sudo service kibana start")
-  run("sudo service nginx start")
+  install_nginx
+
+  sudo("service kibana start")
+  sudo("service nginx start")
 end
