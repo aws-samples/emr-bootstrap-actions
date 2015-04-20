@@ -75,22 +75,23 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
   install_dir = "#{target_dir}elasticsearch-#{elasticsearch_version}/"
   # installing elasticsearch aws plugin
   run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.5.0")
-  # installing hadoop hdfs snapshot plugin
-  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-repository-hdfs/2.0.2-hadoop2")
+  # installing hdfs repository
+  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-repository-hdfs/2.1.0.Beta3-hadoop2")
+
   # replace yaml with new config file
   run("mv elasticsearch.yml #{install_dir}config/elasticsearch.yml")
   sudo("/usr/local/bin/pleaserun --install -p sysv -v lsb-3.1 #{install_dir}/bin/elasticsearch")
 end
 
 def install_hadoop_plugin(target_dir, run_dir)
-  run("wget https://download.elasticsearch.org/hadoop/elasticsearch-hadoop-2.0.2.zip --no-check-certificate")
-  run("mv elasticsearch-hadoop-2.0.2.zip #{target_dir}")
-  run("unzip #{target_dir}elasticsearch-hadoop-2.0.2.zip -d #{target_dir}")
-  run("echo export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:#{@target_dir}elasticsearch-hadoop-2.0.2/dist/* >> ~/.bashrc")
+  run("wget https://download.elasticsearch.org/hadoop/elasticsearch-hadoop-2.1.0.Beta3.zip --no-check-certificate")
+  run("mv elasticsearch-hadoop-2.1.0.Beta3.zip #{target_dir}")
+  run("unzip #{target_dir}elasticsearch-hadoop-2.1.0.Beta3.zip -d #{target_dir}")
+  run("echo export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:#{@target_dir}elasticsearch-hadoop-2.1.0.Beta3/dist/* >> ~/.bashrc")
 end
 
 def clean_up
-  run "rm -Rf #{@target_dir}elasticsearch-hadoop-2.0.2.zip"
+  run "rm -Rf #{@target_dir}elasticsearch-hadoop-2.1.0.Beta3.zip"
   run "rm elasticsearch-#{@elasticsearch_version}.tar.gz"
 end
 
