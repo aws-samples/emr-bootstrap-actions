@@ -88,7 +88,7 @@ SPARK_DRIVER_LOG_LEVEL="INFO"
 USE_EMR_HIVE_JARS=0
 
 #process command line arguments
-while getopts "c:v:gb:xu:al:" opt; do
+while getopts "c:v:gb:xu:al:h" opt; do
   case $opt in
     c)
       CONFIG_FILE=$OPTARG
