@@ -12,6 +12,7 @@ set -x
 #   -u <s3path>       - Add the jars in the given S3 path to spark classpath in the user-provided directory (ahead of all other dependencies) 
 #   -a		      - (Use cautiously) Place spark-assembly-*.jar ahead of all system jars on spark classpath
 #   -l		      - Set the log level of log4j.logger.org.apache.spark for the driver, defaults to INFO (OFF,ERROR,WARN,INFO,DEBUG,ALL), passed as env variable SparkDriverLogLevel to script
+#   -h		      - Include EMR Hive jars in Spark classpath, this provides the enhancements from EMR Hive though may be at compatibility cost of some Spark features which expect Hive 0.14
 #
 #
 #  For AWS provided Spark builds and installs refer to https://github.com/awslabs/emr-bootstrap-actions/blob/master/spark/README.md
@@ -84,8 +85,10 @@ SPARK_BUILD=""
 
 SPARK_DRIVER_LOG_LEVEL="INFO"
 
+USE_EMR_HIVE_JARS=0
+
 #process command line arguments
-while getopts "c:v:gb:xu:al:" opt; do
+while getopts "c:v:gb:xu:al:h" opt; do
   case $opt in
     c)
       CONFIG_FILE=$OPTARG
@@ -111,6 +114,8 @@ while getopts "c:v:gb:xu:al:" opt; do
     l)
       SPARK_DRIVER_LOG_LEVEL=$OPTARG
       ;;
+    h)
+      USE_EMR_HIVE_JARS=1
   esac
 done
 
@@ -305,6 +310,15 @@ then
 
 fi
 
+if [ $USE_EMR_HIVE_JARS -eq 1 ]
+then
+        echo "Inlcuding EMR Hive jars in spark classpath."
+	mkdir /home/hadoop/spark/classpath/hive
+	/bin/ls /home/hadoop/.versions/hive-*/lib/*.jar | xargs -n 1 -I %% cp %% /home/hadoop/spark/classpath/hive
+	cp -f /home/hadoop/spark/conf/spark-env.sh /home/hadoop/spark/conf/spark-env.sh.prev
+	perl -p -i -e "s|SPARK_CLASSPATH=\"/|SPARK_CLASSPATH=\"/home/hadoop/spark/classpath/hive/*:/|g" /home/hadoop/spark/conf/spark-env.sh
+fi
+
 
 if [ $SPARK_ASSEMBLY_CP_FIRST -eq 1 ]
 then
@@ -323,6 +337,7 @@ then
 	cp -f /home/hadoop/spark/conf/spark-env.sh /home/hadoop/spark/conf/spark-env.sh.prev
 	perl -p -i -e 's|SPARK_CLASSPATH="/|SPARK_CLASSPATH="/home/hadoop/spark/classpath/user-provided/*:/|g' /home/hadoop/spark/conf/spark-env.sh
 fi	
+
 
 
 exit 0
