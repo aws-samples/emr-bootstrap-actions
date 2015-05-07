@@ -44,7 +44,8 @@ To request a specific Spark version build use "-v" to request a specific build v
  * Spark 1.3.0.c (Includes Parquet fix for [SPARK-6330](https://issues.apache.org/jira/browse/SPARK-6330)) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.0.c)
  * Spark 1.3.0.d (Removes no longer relevant JavaKinesisWordCountASLYARN example, just reference stock JavaKinesisWordCountASL example)* [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.0.d)
  * Spark 1.3.1.a (Initial build of Spark's 1.3.1 release) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.1.a)
- * *Spark 1.3.1.b (Includes classpath workaround for comptability with EMR Step usage)* [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.1.b)
+ * Spark 1.3.1.b (Includes classpath workaround for comptability with EMR Step usage) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.1.b)
+ * *Spark 1.3.1.c (Includes workaround for Ganglia/SPARK-6484)* [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.1.c)
 
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
 * branch-1.1 ( "-v 1.1 -b \<buildId\>")
