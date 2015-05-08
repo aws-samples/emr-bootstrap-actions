@@ -92,8 +92,18 @@ def prepare_classpath():
 	# remove scala from classpath
 	scala_jars = glob.glob(emr+"/scala*")
 	scala_jars += glob.glob(emr_fs+"/scala*")
+	scala_jars += glob.glob(emr_fs+"/*_2.11-*") #clean out other scala 2.11 jars
+	scala_jars += glob.glob(emr+"/*_2.11-*")
 	for jar in scala_jars:
-		os.remove(jar)
+		try:
+			os.remove(jar)
+		except OSError:
+			pass
+
+	#remove older commons-codec
+	cmd = "find /home/hadoop/spark/classpath/ -name \"*commons-codec-*\" | cut -d'/' -f7 | sort -r | tail -n +2 | xargs -n 1 -I {} find /home/hadoop/spark/classpath/ -name \"{}\" -delete"
+	subprocess.check_call(cmd,shell=True)
+	
 
 	#create symlink to hive-site.xml, if does not exist copy hive-default.xml to hive-site.xml before making link
 	hivesitexml = "/home/hadoop/hive/conf/hive-site.xml"
