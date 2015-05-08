@@ -317,6 +317,8 @@ then
 	/bin/ls /home/hadoop/.versions/hive-*/lib/*.jar | xargs -n 1 -I %% cp %% /home/hadoop/spark/classpath/hive
 	cp -f /home/hadoop/spark/conf/spark-env.sh /home/hadoop/spark/conf/spark-env.sh.prev
 	perl -p -i -e "s|SPARK_CLASSPATH=\"/|SPARK_CLASSPATH=\"/home/hadoop/spark/classpath/hive/*:/|g" /home/hadoop/spark/conf/spark-env.sh
+	#make sure commons-codec older versions are removed
+	find /home/hadoop/spark/classpath/ -name "*commons-codec-*" | cut -d'/' -f7 | sort -r | tail -n +2 | xargs -n 1 -I {} find /home/hadoop/spark/classpath/ -name "{}" -delete
 fi
 
 
