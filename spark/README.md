@@ -35,6 +35,9 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 -l \<threshold\>   
    Set the log level of log4j.logger.org.apache.spark for the driver, defaults to INFO (OFF,ERROR,WARN,INFO,DEBUG,ALL)
 
+-h   
+   Utilize EMR Hive jars in Spark classpath instead of the prebuilt Spark Hive jars    
+
 #### Current version available:
 
 Spark 1.3.1 (1.3.1.d) with EMR AMI 3.5.x and later
