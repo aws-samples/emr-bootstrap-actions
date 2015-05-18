@@ -7,7 +7,7 @@ set -x
 #   -c <s3_config_file>  - The install-spark config file which tells the script where to find version specific install scripts and binaries, defaults to AWS provided config
 #   -v <version>      - Ability to select a specific Spark build version as avialable via the config file, see https://github.com/awslabs/emr-bootstrap-actions/blob/master/spark/README.md
 #   -b <buildid>      - May be used by the versioned Spark install script in order to request a specific build
-#   -g		      - Enables Ganglia metrics
+#   -g		      - Enables Ganglia metrics (deprecated - Ganglia metrics will now be configured as long as Ganglia app is installed)
 #   -x                - Sets the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes]
 #   -u <s3path>       - Add the jars in the given S3 path to spark classpath in the user-provided directory (ahead of all other dependencies) 
 #   -a		      - (Use cautiously) Place spark-assembly-*.jar ahead of all system jars on spark classpath
@@ -75,8 +75,6 @@ mkdir -p $TMPLOCATION
 
 LOCAL_CONFIG_FILE="$TMPLOCATION/config.file"
 
-INSTALLGANGLIA=0
-
 SPARK_MAX=0
 USER_PROVIDED_JARS=""
 
@@ -88,16 +86,13 @@ SPARK_DRIVER_LOG_LEVEL="INFO"
 USE_EMR_HIVE_JARS=0
 
 #process command line arguments
-while getopts "c:v:gb:xu:al:h" opt; do
+while getopts "c:v:b:xu:al:h" opt; do
   case $opt in
     c)
       CONFIG_FILE=$OPTARG
       ;;
     v)
       REQUESTED_VERSION=$OPTARG
-      ;;
-    g)
-      INSTALLGANGLIA=1
       ;;
     b)
       SPARK_BUILD=$OPTARG
@@ -257,7 +252,7 @@ touch /mnt/sparkinstalled
 # field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
 
 
-if [ $INSTALLGANGLIA -eq 1 ]
+if [ -e /usr/sbin/gmond ] # If Ganglia is installed
 then
 	#We need the ganglia script
 	if [ "${CONFIG_FIELDS_ARRAY[6]}" == "" ]
