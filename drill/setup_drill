@@ -202,8 +202,8 @@ end
 
 def installDrill(targetDir, runDir, logDir)
     drillTarGZUrl="http://getdrill.org/drill/download"
-    drillTarGZ="apache-drill-0.8.0.tar.gz"
-    drillRoot="apache-drill-0.8.0"
+    drillTarGZ="apache-drill-0.9.0.tar.gz"
+    drillRoot="apache-drill-0.9.0"
 
     println "Going to download Apache Drill distribution #{drillTarGZ} from #{drillTarGZUrl}"
     sudo "curl -L --silent --show-error --fail --connect-timeout 60 --max-time 720 --retry 5 -O  #{drillTarGZUrl}/#{drillTarGZ}"
