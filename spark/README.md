@@ -22,6 +22,7 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 
 -g   
    Installs Ganglia metrics configuration for Spark (requires Ganglia to be installed, see http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/UsingEMR_Ganglia.html)
+   (Deprecated) Ganglia metrics are now always configured if the Ganglia app is installed.
 
 -x   
    Prepares the default Spark config for dedicated Spark single application use [1 executor per node, num of executors equivalent to core nodes at creation of cluster, all memory/vcores allocated]
