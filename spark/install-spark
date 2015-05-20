@@ -13,6 +13,7 @@ set -x
 #   -a		      - (Use cautiously) Place spark-assembly-*.jar ahead of all system jars on spark classpath
 #   -l		      - Set the log level of log4j.logger.org.apache.spark for the driver, defaults to INFO (OFF,ERROR,WARN,INFO,DEBUG,ALL), passed as env variable SparkDriverLogLevel to script
 #   -h		      - Include EMR Hive jars in Spark classpath, this provides the enhancements from EMR Hive though may be at compatibility cost of some Spark features which expect Hive 0.14
+#   -d <key>=<value>  - Set <key> to <value> in spark-defaults.conf (may be specified multiple times, prefixing each key-value pair with -d)
 #
 #
 #  For AWS provided Spark builds and installs refer to https://github.com/awslabs/emr-bootstrap-actions/blob/master/spark/README.md
@@ -85,8 +86,10 @@ SPARK_DRIVER_LOG_LEVEL="INFO"
 
 USE_EMR_HIVE_JARS=0
 
+SPARK_DEFAULTS_CONF_KEY_VALUES=()
+
 #process command line arguments
-while getopts "c:v:b:xu:al:h" opt; do
+while getopts "c:v:b:xu:al:hd:" opt; do
   case $opt in
     c)
       CONFIG_FILE=$OPTARG
@@ -111,6 +114,10 @@ while getopts "c:v:b:xu:al:h" opt; do
       ;;
     h)
       USE_EMR_HIVE_JARS=1
+      ;;
+    d)
+      SPARK_DEFAULTS_CONF_KEY_VALUES+=($OPTARG)
+      ;;
   esac
 done
 
@@ -350,6 +357,10 @@ then
 	perl -p -i -e 's|SPARK_CLASSPATH="/|SPARK_CLASSPATH="/home/hadoop/spark/classpath/user-provided/*:/|g' /home/hadoop/spark/conf/spark-env.sh
 fi	
 
-
+if [ ${#SPARK_DEFAULTS_CONF_KEY_VALUES[@]} -gt 0 ]
+then
+	hadoop fs -get "$SparkS3SupportingFilesPath/configure-spark.bash"
+	bash configure-spark.bash "${SPARK_DEFAULTS_CONF_KEY_VALUES[@]}"
+fi
 
 exit 0

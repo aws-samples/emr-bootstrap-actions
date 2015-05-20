@@ -39,6 +39,9 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 -h   
    Utilize EMR Hive jars in Spark classpath instead of the prebuilt Spark Hive jars    
 
+-d \<key\>=\<value\>
+   Set <key> to <value> in spark-defaults.conf (may be specified multiple times, prefixing each key-value pair with -d)
+
 #### Current version available:
 
 Spark 1.3.1 (1.3.1.d) with EMR AMI 3.5.x and later
@@ -90,7 +93,7 @@ elastic-mapreduce --create --name spark --ami-version 3.7 --bootstrap-action s3:
 ```
 
 
-### 3) Utilize an EMR Step to configure the Spark default configuration (optional)
+### 3) Utilize an EMR Step to configure the Spark default configuration (optional - can also use -d flag in install-spark BA)
 
 #### Script:
 `s3://support.elasticmapreduce/spark/configure-spark.bash (needs to be executed by s3://elasticmapreduce/libs/script-runner/script-runner.jar)`
