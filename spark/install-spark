@@ -27,7 +27,7 @@ set -x
 # field6 - (optional) s3 path to the script executed when "-x" argument is used, defaults to AWS provided version if empty
 # field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
 # field8 - (optional) s3 location for Scala binaries to install, how this field is used is up to the install script, set enviroment variable 'ScalaS3Location'
-#
+# field9 - (optional) s3 base path for supporting reference files, for example, where to find configure-spark.bash, this file would be expected to be found in this path, set environment variable 'SparkS3SupportingFilesPath'
 #-----------------------------------------------------
 #
 if [ -e "/mnt/sparkinstalled" ]
@@ -153,6 +153,8 @@ fi
 # field5 - s3 path to files that will be used for Spark binaries, how this field is used is up to the install script, sets enviroment variable 'SparkS3InstallPath'
 # field6 - (optional) s3 path to the script executed when "-x" argument is used, defaults to AWS provided version if empty
 # field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
+# field8 - (optional) s3 location for Scala binaries to install, how this field is used is up to the install script, set enviroment variable 'ScalaS3Location'
+# field9 - (optional) s3 base path for supporting reference files, for example, the script configure-spark.bash, this file would be expected to be found in this path, set environment variable 'SparkS3SupportingFilesPath'
 
 #------------------
 # Process through config file options
@@ -230,6 +232,19 @@ export SparkBuild="$SPARK_BUILD"
 export Ec2Region="$REGION"
 export ScalaS3Location="${CONFIG_FIELDS_ARRAY[7]}"
 export SparkDriverLogLevel="$SPARK_DRIVER_LOG_LEVEL"
+
+#SparkS3SupportingFilesPath
+if [ "${CONFIG_FIELDS_ARRAY[8]}" == "" ]
+then
+       if [ "$REGION" == "eu-central-1" ]
+       then
+               CONFIG_FIELDS_ARRAY[8]=s3://eu-central-1.support.elasticmapreduce/spark
+       else
+               CONFIG_FIELDS_ARRAY[8]=s3://support.elasticmapreduce/spark
+       fi
+fi
+export SparkS3SupportingFilesPath="${CONFIG_FIELDS_ARRAY[8]%/}"
+
 
 CMDOUT=$(${CONFIG_FIELDS_ARRAY[2]} $TMPLOCATION/install-spark-script)
 CMDSIG=$?

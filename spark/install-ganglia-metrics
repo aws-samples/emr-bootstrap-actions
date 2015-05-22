@@ -10,6 +10,23 @@ MASTER="master"
 MASTERIP=`grep /home/hadoop/conf/yarn-site.xml -e yarn\.resourcemanager\.address | cut -d ':' -f1 | cut -d '>' -f5`
 PORT=8649
 
+#determine the current region and place into REGION
+EC2AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
+REGION="`echo \"$EC2AZ\" | sed -e 's:\([0-9][0-9]*\)[a-z]*\$:\\1:'`"
+
+
+if [ "$SparkS3SupportingFilesPath" == "" ]
+then
+       if [ "$REGION" == "eu-central-1" ]
+       then
+               SparkS3SupportingFilesPath=s3://eu-central-1.support.elasticmapreduce/spark
+       else
+               SparkS3SupportingFilesPath=s3://support.elasticmapreduce/spark
+       fi
+fi
+SparkS3SupportingFilesPath=${SparkS3SupportingFilesPath%/}
+	
+
 if [ $# -eq 2 ]
 then
 	PORT=$2
@@ -42,7 +59,7 @@ cat << EOF > /home/hadoop/spark/conf/ganglia.metrics.properties
 
 EOF
 
-wget "http://support.elasticmapreduce.s3.amazonaws.com/spark/configure-spark.bash"
+hadoop fs -get "$SparkS3SupportingFilesPath/configure-spark.bash"
 
 bash configure-spark.bash spark.metrics.conf=/home/hadoop/spark/conf/ganglia.metrics.properties
 
