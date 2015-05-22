@@ -11,8 +11,24 @@
 #
 set -x
 #
-VCOREREFERENCE=http://support.elasticmapreduce.s3.amazonaws.com/spark/vcorereference.tsv
-CONFIGURESPARK=http://support.elasticmapreduce.s3.amazonaws.com/spark/configure-spark.bash
+#determine the current region and place into REGION
+EC2AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
+REGION="`echo \"$EC2AZ\" | sed -e 's:\([0-9][0-9]*\)[a-z]*\$:\\1:'`"
+
+
+if [ "$SparkS3SupportingFilesPath" == "" ]
+then
+       if [ "$REGION" == "eu-central-1" ]
+       then
+               SparkS3SupportingFilesPath=s3://eu-central-1.support.elasticmapreduce/spark
+       else
+               SparkS3SupportingFilesPath=s3://support.elasticmapreduce/spark
+       fi
+fi
+SparkS3SupportingFilesPath=${SparkS3SupportingFilesPath%/}
+
+VCOREREFERENCE="$SparkS3SupportingFilesPath/vcorereference.tsv"
+CONFIGURESPARK="$SparkS3SupportingFilesPath/configure-spark.bash"
 #
 echo "Configuring Spark default configuration to the max memory and vcore setting given configured number of cores nodes at cluster creation"
 
@@ -36,7 +52,13 @@ then
 	SLAVE_INSTANCE_TYPE="m3.xlarge"
 fi
 
-wget $VCOREREFERENCE
+hadoop fs -get $VCOREREFERENCE
+
+if [ ! -e "vcorereference.tsv" ]
+then
+	echo "Reference file vcorereference.tsv not available, failing quietly."
+	exit 0
+fi
 
 NUM_VCORES=$(grep vcorereference.tsv -e $SLAVE_INSTANCE_TYPE | cut -f2)
 
@@ -49,7 +71,7 @@ PARALLEL=$(expr $NUM_VCORES \* $NUM_NODES)
 
 #--- Now use configure-spark.bash to set values
 
-wget $CONFIGURESPARK
+hadoop fs -get $CONFIGURESPARK
 
 bash configure-spark.bash spark.executor.instances=$NUM_NODES spark.executor.cores=$NUM_VCORES spark.executor.memory=$EXEC_MEMORY 
 
