@@ -32,7 +32,7 @@ To demonstrate I will step through an example using AWS CLI with current latest 
 This command creates running cluster with Spark installed and uses an optional install-spark argument to override Spark's defaults with a dedicated Spark application configuration (1 executor per node, use as much memory as possible, see [install-spark readme for more details](../README.md)) and enable logging to a S3 bucket.
 
 ```
-aws emr create-cluster --name EMR-Spark-Step-Example --ami-version 3.6 \
+aws emr create-cluster --name EMR-Spark-Step-Example --ami-version 3.7 \
 --instance-type=m3.2xlarge --instance-count 3 --applications Name=Hive  \
 --use-default-roles --ec2-attributes KeyName=<YOUR_EC2_KEY_NAME>,SubnetId=<YOUR_VPC_SUBNET_ID> \
 --log-uri s3://<YOUR_BUCKET>/<YOUR_PATH> \
@@ -46,7 +46,7 @@ This command will return a cluster id of the form j-#####. The cluster will also
 
 ```
 aws emr add-steps --cluster-id <YOUR_CLUSTER_ID> --steps \
-Name=SparkPi,Jar=s3://<REGION_OF_CLUSTER>.elasticmapreduce/libs/script-runner/script-runner.jar,Args=[/home/hadoop/spark/bin/spark-submit,--deploy-mode,cluster,--master,yarn-cluster,--class,org.apache.spark.examples.SparkPi,s3://support.elasticmapreduce/spark/1.2.0/spark-examples-1.2.0-hadoop2.4.0.jar,10],ActionOnFailure=CONTINUE
+Name=SparkPi,Jar=s3://<REGION_OF_CLUSTER>.elasticmapreduce/libs/script-runner/script-runner.jar,Args=[/home/hadoop/spark/bin/spark-submit,--deploy-mode,cluster,--master,yarn,--class,org.apache.spark.examples.SparkPi,s3://support.elasticmapreduce/spark/1.2.0/spark-examples-1.2.0-hadoop2.4.0.jar,10],ActionOnFailure=CONTINUE
 ```
 
 
@@ -54,7 +54,7 @@ Name=SparkPi,Jar=s3://<REGION_OF_CLUSTER>.elasticmapreduce/libs/script-runner/sc
 
 ```
 aws emr add-steps --cluster-id <YOUR_CLUSTER_ID> --steps \
-Name=JavaWordCount,Jar=s3://<REGION_OF_CLUSTER>.elasticmapreduce/libs/script-runner/script-runner.jar,Args=[/home/hadoop/spark/bin/spark-submit,--deploy-mode,cluster,--master,yarn-cluster,--driver-memory,1G,--executor-memory,1G,--num-executors,4,--class,org.apache.spark.examples.JavaWordCount,s3://support.elasticmapreduce/spark/1.2.0/spark-examples-1.2.0-hadoop2.4.0.jar,s3://support.elasticmapreduce/spark/examples/wordcountdata],ActionOnFailure=CONTINUE
+Name=JavaWordCount,Jar=s3://<REGION_OF_CLUSTER>.elasticmapreduce/libs/script-runner/script-runner.jar,Args=[/home/hadoop/spark/bin/spark-submit,--deploy-mode,cluster,--master,yarn,--driver-memory,1G,--executor-memory,1G,--num-executors,4,--class,org.apache.spark.examples.JavaWordCount,s3://support.elasticmapreduce/spark/1.2.0/spark-examples-1.2.0-hadoop2.4.0.jar,s3://support.elasticmapreduce/spark/examples/wordcountdata],ActionOnFailure=CONTINUE
 ```
 
 
@@ -73,12 +73,12 @@ The above examples logged the step output and YARN application and container out
 ## Example of an all-in-one AWS CLI command that creates the cluster, runs a Spark application, then terminates
 
 ```
-aws emr create-cluster --name EMR-Spark-Step-Example --ami-version 3.6 \
+aws emr create-cluster --name EMR-Spark-Step-Example --ami-version 3.7 \
 --instance-type=m3.2xlarge --instance-count 3 --applications Name=Hive  \
 --use-default-roles --ec2-attributes KeyName=<YOUR_EC2_KEY_NAME>,SubnetId=<YOUR_VPC_SUBNET_ID> \
 --log-uri s3://<YOUR_BUCKET>/<YOUR_PATH> \
 --bootstrap-action Name=Spark,Path=s3://support.elasticmapreduce/spark/install-spark,Args=[-x] \
---steps Name=SparkPi,Jar=s3://<REGION_OF_CLUSTER>.elasticmapreduce/libs/script-runner/script-runner.jar,Args=[/home/hadoop/spark/bin/spark-submit,--deploy-mode,cluster,--master,yarn-cluster,--class,org.apache.spark.examples.SparkPi,s3://support.elasticmapreduce/spark/1.2.0/spark-examples-1.2.0-hadoop2.4.0.jar,10] \
+--steps Name=SparkPi,Jar=s3://<REGION_OF_CLUSTER>.elasticmapreduce/libs/script-runner/script-runner.jar,Args=[/home/hadoop/spark/bin/spark-submit,--deploy-mode,cluster,--master,yarn,--class,org.apache.spark.examples.SparkPi,s3://support.elasticmapreduce/spark/1.2.0/spark-examples-1.2.0-hadoop2.4.0.jar,10] \
 --auto-terminate
 ```
 
