@@ -49,7 +49,12 @@ spark_evlogs = "hdfs:///spark-logs"
 # create hdfs folder for event logs (actually not needed, it will fail if run as BA)
 subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-mkdir","-p",spark_evlogs])
 
-subprocess.check_call(["bash","configure-spark.bash","spark.eventLog.enabled=true", "spark.eventLog.dir=hdfs:///spark-logs/"])
+# get master ip
+out, err = subprocess.Popen(['grep', '/home/hadoop/conf/yarn-site.xml', '-e', 'resourcemanager.address'], stdout=subprocess.PIPE).communicate()
+master_ip = out.split(":")[0].split("<value>")[1]
+sparkHistoryServerEnableYarn = "spark.yarn.historyServer.address=" + master_ip + ":18080"
+
+subprocess.check_call(["bash","configure-spark.bash","spark.eventLog.enabled=true", "spark.eventLog.dir=hdfs:///spark-logs/", sparkHistoryServerEnableYarn])
 
 # start spark history server
 history_server_script = os.path.join(spark_home,"sbin","start-history-server.sh")
