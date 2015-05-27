@@ -25,6 +25,8 @@ Examples Index
 
 - [Reading input with custom Hadoop input formats, newAPIHadoopFile() (Java)](spark-java-TeraInputFormat-count.md)
 
+- [Using Hive and SparkSQL together with Parquet storage on EMR AMI 3.x](parquet-sparksql-hive-compatibility.md)
+
 
 # Other references
 
