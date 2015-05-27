@@ -26,7 +26,7 @@ To provide guidance and examples of how to use Parquet tables interchangeably be
 create external table wikistat (projectcode string, pagename string, pageviews int, pagesize int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ' ' location 's3://support.elasticmapreduce/bigdatademo/sample/wiki';
 ```
 
-3) Set the SparkSQL  `spark.sql.hive.convertMetastoreParquet` property. *Important!*
+3) Set the SparkSQL  `spark.sql.hive.convertMetastoreParquet` property. *Important!* (This propery may also be set in `spark-defaults.conf`.)
 
 ```
 set spark.sql.hive.convertMetastoreParquet=false;
