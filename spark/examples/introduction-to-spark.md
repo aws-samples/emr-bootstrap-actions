@@ -19,7 +19,7 @@ Spark and Hadoop do share overlapping areas in regards to distributed computing 
  * The same code works locally and across clusters.  
  * Cluster deployment and execution is abstracted away from user. (http://spark.apache.org/docs/latest/submitting-applications.html)  
  
-* [Resilent Distributed Datasets (RDDs)](http://spark.apache.org/docs/latest/programming-guide.html#resilient-distributed-datasets-rdds)  
+* [Resilient Distributed Datasets (RDDs)](http://spark.apache.org/docs/latest/programming-guide.html#resilient-distributed-datasets-rdds)  
   * A collection of elements that represent a data set either in-memory, on disk and/or both.  
   * Maintained lineage graph through transformations of RDDs which allows for Spark to automatically identify and recompute missing elements of data as needed.  
   * Spark engine understands when/how to perform parallel computations based on actions/transformations requested by user.  
