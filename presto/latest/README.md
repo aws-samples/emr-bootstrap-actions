@@ -21,9 +21,11 @@ Usage: presto-install [OPTIONS]
     -v [ Version of Presto to Install. See README for supported versions ],
         --version                    Ex : 0.95 )
     -b [ Location of Self Compiled Binary of Presto. See README for details on what package structure must look like. ],
-        --binary                     Ex : s3://mybuctet/compiled/presto-compiled.tar.gz
+        --binary                     Ex : s3://mybucket/compiled/presto-compiled.tar.gz
     -c [ Install Presto-CLI. By default set to true ],
         --install-cli                Ex : false
+    -j [ Location of custom CLI jar (implies -c option). By default, uses CLI of version set with -v ],
+        --cli-jar                    Ex : s3://mybucket/presto-cli.jar
     -M [ Location of Already Running Hive MetaStore. This will stop the BA from launching the Hive MetaStore Service on the Master Instance ],
         --metastore-uri              Ex : thrift://192.168.0.1:9083
     -h, --help                       Display this message
