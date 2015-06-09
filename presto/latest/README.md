@@ -36,7 +36,7 @@ This BA requires that you also install Hive 13 on your cluster as it uses Hive a
 Only tested against AMI 3.3.2 >
 
 ###Changes
-- 09/06/2015 : Changed support for custom binary. No need to repackage like before! Just download from Prestodb.io and upload to S3. (Also typos and documentation corrections)
+- 09/06/2015 : Added custom CLI jar support. Changed support for custom binary: No need to repackage, just download from Prestodb.io and upload to S3. (Also typos and documentation corrections)
 - 07/04/2015 : Added support to specify a Remote MetaStore Service
 - 31/03/2015 : Added Support for Selective CLI installation and to specify your own compiled Presto Binary
 - 26/02/2015 : Added Support for AWS EC2 Roles 
