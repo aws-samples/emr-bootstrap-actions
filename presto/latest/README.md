@@ -14,10 +14,10 @@ Usage: presto-install [OPTIONS]
         --home-dir
     -p [ Hive Metastore Port ],      Ex : 9083 )
         --hive-port
-    -m [ Memory Specified in Java -Xmx Formatting ],
-        --MaxMemory                  Ex : 512M )
-    -n [ Nursery Memory Specified in Java -Xmn Formatting ],
-        --NurseryMem                 Ex : 512M )
+    -m [ Memory (in MB) Specified in Java -Xmx Formatting ],
+        --MaxMemory                  Ex : 512 )
+    -n [ Nursery Memory (in MB) Specified in Java -Xmn Formatting ],
+        --NurseryMem                 Ex : 512 )
     -v [ Version of Presto to Install. See README for supported versions ],
         --version                    Ex : 0.95 )
     -b [ Location of Self Compiled Binary of Presto. See README for details on what package structure must look like. ],
