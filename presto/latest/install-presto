@@ -26,13 +26,13 @@ def parseOptions
 	      		config_options[:port] = port
 	    end
 
-		opt.on("-m",'--MaxMemory [ Memory Specified in Java -Xmx Formatting ]',
-	           "Ex : 512M )") do |xmx_value|
+		opt.on("-m",'--MaxMemory [ Memory (in MB) Specified in Java -Xmx Formatting ]',
+	           "Ex : 512 )") do |xmx_value|
 	      		config_options[:xmx] = xmx_value
 	    end
 
-	    opt.on("-n",'--NurseryMem [ Nursery Memory Specified in Java -Xmn Formatting ]',
-	           "Ex : 512M )") do |nurse|
+	    opt.on("-n",'--NurseryMem [ Nursery Memory (in MB) Specified in Java -Xmn Formatting ]',
+	           "Ex : 512 )") do |nurse|
 	      		config_options[:nurse] = nurse
 	    end
 
