@@ -1,0 +1,19 @@
+Latest Version of Impala
+==========================
+This Bootstrap Action provisions your cluster with the latest version of Impala available on EMR. A list of all available versions of Impala can be found further down in this Readme. 
+
+###Bootstrap Location
+s3://support.elasticmapreduce/bootstrap-actions/impala/impala-install
+
+###
+```
+TBC
+```
+
+###Requirements
+- AWS EMR AMI >= 3.7.0
+
+###Changes
+- 10/06/2015 : Initial Creation of BA with Impala 2.2.0
+
+
