@@ -1,9 +1,9 @@
 #!/usr/bin/python
-# Script to install Spark on Emr 
+# Script to install Spark on Emr
 # Assumes use of SparkS3InstallPath enviroment variable
 # Assumes use of Ec2Region enviroment variable
 # Assumes need to install Scala 2.10 with ScalaS3Location pointing to tgz
-import os 
+import os
 import subprocess
 import glob
 import sys
@@ -11,9 +11,9 @@ import shutil
 
 # Gather environment info
 # expects to find SparkS3InstallPath defining path to tgz for install
-# expects the basename without extension of path to match the directory name give, for example s3://support.elasticmapreduce/spark/v1.2.0/spark-1.2.0.a.tgz with basename of 
+# expects the basename without extension of path to match the directory name give, for example s3://support.elasticmapreduce/spark/v1.2.0/spark-1.2.0.a.tgz with basename of
 #  spark-1.2.0.a.tgz will expand into direcotry structure of spark-1.2.0.a/
-# expects to find ScalaS3Location defining path to tgz for Scala install 
+# expects to find ScalaS3Location defining path to tgz for Scala install
 SparkS3InstallPath = os.environ['SparkS3InstallPath']
 ScalaS3Location = os.environ['ScalaS3Location']
 Ec2Region = os.environ['Ec2Region']
@@ -40,7 +40,6 @@ ScalaBase = os.path.basename(base)
 # various paths
 hadoop_home = "/home/hadoop"
 hadoop_apps = "/home/hadoop/.versions"
-local_dir = "/mnt/spark"
 tmp_dir = "/mnt/staging-spark-install-files"
 spark_home = "/home/hadoop/spark"
 spark_classpath = os.path.join(spark_home,"classpath")
@@ -48,6 +47,10 @@ spark_log_dir = "/mnt/var/log/apps"
 scala_home = os.path.join(hadoop_apps,ScalaBase)
 lock_file = '/tmp/spark-installed'
 
+# Create a comma-separated list of Spark local dirs: one on each /mnt mount point found on the system.
+out, err = subprocess.Popen(['cat', '/proc/mounts'], stdout=subprocess.PIPE).communicate()
+mnt_points = [p.split(' ')[1] for p in out.split('\n') if "/mnt" in p]
+local_dir = ','.join([p + '/spark' for p in mnt_points])
 
 subprocess.check_call(["/bin/mkdir","-p",tmp_dir])
 
@@ -92,8 +95,18 @@ def prepare_classpath():
 	# remove scala from classpath
 	scala_jars = glob.glob(emr+"/scala*")
 	scala_jars += glob.glob(emr_fs+"/scala*")
+	scala_jars += glob.glob(emr_fs+"/*_2.11-*") #clean out other scala 2.11 jars
+	scala_jars += glob.glob(emr+"/*_2.11-*")
 	for jar in scala_jars:
-		os.remove(jar)
+		try:
+			os.remove(jar)
+		except OSError:
+			pass
+
+	#remove older commons-codec
+	cmd = "find /home/hadoop/spark/classpath/ -name \"*commons-codec-*\" | cut -d'/' -f7 | sort -r | tail -n +2 | xargs -n 1 -I {} find /home/hadoop/spark/classpath/ -name \"{}\" -delete"
+	subprocess.check_call(cmd,shell=True)
+
 
 	#create symlink to hive-site.xml, if does not exist copy hive-default.xml to hive-site.xml before making link
 	hivesitexml = "/home/hadoop/hive/conf/hive-site.xml"

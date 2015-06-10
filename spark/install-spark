@@ -7,11 +7,13 @@ set -x
 #   -c <s3_config_file>  - The install-spark config file which tells the script where to find version specific install scripts and binaries, defaults to AWS provided config
 #   -v <version>      - Ability to select a specific Spark build version as avialable via the config file, see https://github.com/awslabs/emr-bootstrap-actions/blob/master/spark/README.md
 #   -b <buildid>      - May be used by the versioned Spark install script in order to request a specific build
-#   -g		      - Enables Ganglia metrics
+#   -g		      - Enables Ganglia metrics (deprecated - Ganglia metrics will now be configured as long as Ganglia app is installed)
 #   -x                - Sets the default Spark config for dedictate Spark job utilization [1 executor per node, all vcore and memory, all core nodes]
 #   -u <s3path>       - Add the jars in the given S3 path to spark classpath in the user-provided directory (ahead of all other dependencies) 
 #   -a		      - (Use cautiously) Place spark-assembly-*.jar ahead of all system jars on spark classpath
 #   -l		      - Set the log level of log4j.logger.org.apache.spark for the driver, defaults to INFO (OFF,ERROR,WARN,INFO,DEBUG,ALL), passed as env variable SparkDriverLogLevel to script
+#   -h		      - Include EMR Hive jars in Spark classpath, this provides the enhancements from EMR Hive though may be at compatibility cost of some Spark features which expect Hive 0.14
+#   -d <key>=<value>  - Set <key> to <value> in spark-defaults.conf (may be specified multiple times, prefixing each key-value pair with -d)
 #
 #
 #  For AWS provided Spark builds and installs refer to https://github.com/awslabs/emr-bootstrap-actions/blob/master/spark/README.md
@@ -26,7 +28,7 @@ set -x
 # field6 - (optional) s3 path to the script executed when "-x" argument is used, defaults to AWS provided version if empty
 # field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
 # field8 - (optional) s3 location for Scala binaries to install, how this field is used is up to the install script, set enviroment variable 'ScalaS3Location'
-#
+# field9 - (optional) s3 base path for supporting reference files, for example, where to find configure-spark.bash, this file would be expected to be found in this path, set environment variable 'SparkS3SupportingFilesPath'
 #-----------------------------------------------------
 #
 if [ -e "/mnt/sparkinstalled" ]
@@ -74,8 +76,6 @@ mkdir -p $TMPLOCATION
 
 LOCAL_CONFIG_FILE="$TMPLOCATION/config.file"
 
-INSTALLGANGLIA=0
-
 SPARK_MAX=0
 USER_PROVIDED_JARS=""
 
@@ -84,17 +84,18 @@ SPARK_BUILD=""
 
 SPARK_DRIVER_LOG_LEVEL="INFO"
 
+USE_EMR_HIVE_JARS=0
+
+SPARK_DEFAULTS_CONF_KEY_VALUES=()
+
 #process command line arguments
-while getopts "c:v:gb:xu:al:" opt; do
+while getopts "c:v:b:xu:al:hd:" opt; do
   case $opt in
     c)
       CONFIG_FILE=$OPTARG
       ;;
     v)
       REQUESTED_VERSION=$OPTARG
-      ;;
-    g)
-      INSTALLGANGLIA=1
       ;;
     b)
       SPARK_BUILD=$OPTARG
@@ -110,6 +111,12 @@ while getopts "c:v:gb:xu:al:" opt; do
       ;;
     l)
       SPARK_DRIVER_LOG_LEVEL=$OPTARG
+      ;;
+    h)
+      USE_EMR_HIVE_JARS=1
+      ;;
+    d)
+      SPARK_DEFAULTS_CONF_KEY_VALUES+=($OPTARG)
       ;;
   esac
 done
@@ -153,6 +160,8 @@ fi
 # field5 - s3 path to files that will be used for Spark binaries, how this field is used is up to the install script, sets enviroment variable 'SparkS3InstallPath'
 # field6 - (optional) s3 path to the script executed when "-x" argument is used, defaults to AWS provided version if empty
 # field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
+# field8 - (optional) s3 location for Scala binaries to install, how this field is used is up to the install script, set enviroment variable 'ScalaS3Location'
+# field9 - (optional) s3 base path for supporting reference files, for example, the script configure-spark.bash, this file would be expected to be found in this path, set environment variable 'SparkS3SupportingFilesPath'
 
 #------------------
 # Process through config file options
@@ -231,6 +240,19 @@ export Ec2Region="$REGION"
 export ScalaS3Location="${CONFIG_FIELDS_ARRAY[7]}"
 export SparkDriverLogLevel="$SPARK_DRIVER_LOG_LEVEL"
 
+#SparkS3SupportingFilesPath
+if [ "${CONFIG_FIELDS_ARRAY[8]}" == "" ]
+then
+       if [ "$REGION" == "eu-central-1" ]
+       then
+               CONFIG_FIELDS_ARRAY[8]=s3://eu-central-1.support.elasticmapreduce/spark
+       else
+               CONFIG_FIELDS_ARRAY[8]=s3://support.elasticmapreduce/spark
+       fi
+fi
+export SparkS3SupportingFilesPath="${CONFIG_FIELDS_ARRAY[8]%/}"
+
+
 CMDOUT=$(${CONFIG_FIELDS_ARRAY[2]} $TMPLOCATION/install-spark-script)
 CMDSIG=$?
 
@@ -252,7 +274,7 @@ touch /mnt/sparkinstalled
 # field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
 
 
-if [ $INSTALLGANGLIA -eq 1 ]
+if [ -e /usr/sbin/gmond ] # If Ganglia is installed
 then
 	#We need the ganglia script
 	if [ "${CONFIG_FIELDS_ARRAY[6]}" == "" ]
@@ -305,6 +327,17 @@ then
 
 fi
 
+if [ $USE_EMR_HIVE_JARS -eq 1 ]
+then
+        echo "Inlcuding EMR Hive jars in spark classpath."
+	mkdir /home/hadoop/spark/classpath/hive
+	/bin/ls /home/hadoop/.versions/hive-*/lib/*.jar | xargs -n 1 -I %% cp %% /home/hadoop/spark/classpath/hive
+	cp -f /home/hadoop/spark/conf/spark-env.sh /home/hadoop/spark/conf/spark-env.sh.prev
+	perl -p -i -e "s|SPARK_CLASSPATH=\"/|SPARK_CLASSPATH=\"/home/hadoop/spark/classpath/hive/*:/|g" /home/hadoop/spark/conf/spark-env.sh
+	#make sure commons-codec older versions are removed
+	find /home/hadoop/spark/classpath/ -name "*commons-codec-*" | cut -d'/' -f7 | sort -r | tail -n +2 | xargs -n 1 -I {} find /home/hadoop/spark/classpath/ -name "{}" -delete
+fi
+
 
 if [ $SPARK_ASSEMBLY_CP_FIRST -eq 1 ]
 then
@@ -324,5 +357,10 @@ then
 	perl -p -i -e 's|SPARK_CLASSPATH="/|SPARK_CLASSPATH="/home/hadoop/spark/classpath/user-provided/*:/|g' /home/hadoop/spark/conf/spark-env.sh
 fi	
 
+if [ ${#SPARK_DEFAULTS_CONF_KEY_VALUES[@]} -gt 0 ]
+then
+	hadoop fs -get "$SparkS3SupportingFilesPath/configure-spark.bash"
+	bash configure-spark.bash "${SPARK_DEFAULTS_CONF_KEY_VALUES[@]}"
+fi
 
 exit 0

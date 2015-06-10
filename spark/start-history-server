@@ -5,8 +5,37 @@ import subprocess
 import glob
 import sys
 
-# various paths
-CONFIGURESPARK="s3://support.elasticmapreduce/spark/configure-spark.bash"
+#--
+#Embed configure-spark.bash so as to not have to rely on install-script variables and config
+
+with open("configure-spark.bash", "w") as w:
+    w.write("""\
+#!/bin/bash
+set -x
+# Basic bash script to take key=value pairs on the command line and replace/add to config file
+# doesn't handle escaped arguments and treats each space as a new argument
+CONFIG_FILE=/home/hadoop/spark/conf/spark-defaults.conf
+
+#backup file
+cp -v $CONFIG_FILE $CONFIG_FILE.prev
+
+#loop through arguments and change in config file
+for var in "$@"
+do
+        echo "$var"
+        TARGET_KEY="${var%=*}"
+        NEW_VALUE="${var#*=}"
+        sed -c -i "s/^$TARGET_KEY\b.*/\#\0/" $CONFIG_FILE
+        echo "$TARGET_KEY       $NEW_VALUE" >> $CONFIG_FILE
+done
+
+#write out new file contents
+cat $CONFIG_FILE
+
+exit 0
+""");
+#----------
+
 
 hadoop_home = "/home/hadoop"
 hadoop_apps = "/home/hadoop/.versions"
@@ -20,9 +49,12 @@ spark_evlogs = "hdfs:///spark-logs"
 # create hdfs folder for event logs (actually not needed, it will fail if run as BA)
 subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-mkdir","-p",spark_evlogs])
 
-# download configure script and run to adjust config
-subprocess.check_call(["/home/hadoop/bin/hdfs","dfs","-get",CONFIGURESPARK])
-subprocess.check_call(["bash","configure-spark.bash","spark.eventLog.enabled=true", "spark.eventLog.dir=hdfs:///spark-logs/"])
+# get master ip
+out, err = subprocess.Popen(['grep', '/home/hadoop/conf/yarn-site.xml', '-e', 'resourcemanager.address'], stdout=subprocess.PIPE).communicate()
+master_ip = out.split(":")[0].split("<value>")[1]
+sparkHistoryServerEnableYarn = "spark.yarn.historyServer.address=" + master_ip + ":18080"
+
+subprocess.check_call(["bash","configure-spark.bash","spark.eventLog.enabled=true", "spark.eventLog.dir=hdfs:///spark-logs/", sparkHistoryServerEnableYarn])
 
 # start spark history server
 history_server_script = os.path.join(spark_home,"sbin","start-history-server.sh")

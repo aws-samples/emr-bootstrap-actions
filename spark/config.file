@@ -7,22 +7,31 @@
 # field6 - (optional) s3 path to the script executed when "-x" argument is used, defaults to AWS provided version if empty
 # field7 - (optional) s3 path to the script executed when "-g" argument is used to install ganlia, defaults to AWS provided version if empty
 # field8 - (optional) s3 location for Scala binaries to install, how this field is used is up to the install script, set enviroment variable 'ScalaS3Location'
+# field9 - (optional) s3 base path for supporting reference files, for example, where to find configure-spark.bash, this file would be expected to be found in this path, set environment variable 'SparkS3SupportingFilesPath'
 #
-default	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.0/spark-1.3.0.d.tgz	s3://support.elasticmapreduce/spark/maximize-spark-default-config	s3://support.elasticmapreduce/spark/install-ganglia-metrics	s3://support.elasticmapreduce/spark/scala/scala-2.10.3.tgz
+default	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.1/spark-1.3.1.e.tgz	s3://support.elasticmapreduce/spark/maximize-spark-default-config	s3://support.elasticmapreduce/spark/install-ganglia-metrics	s3://support.elasticmapreduce/spark/scala/scala-2.10.3.tgz	s3://support.elasticmapreduce/spark/
 #experimental builds
 default	1.2.1.a-2.11	python	s3://support.elasticmapreduce/spark/scala-2.11-builds/install-spark-v2-scala-2.11.py	s3://support.elasticmapreduce/spark/scala-2.11-builds/spark-1.2.1.a.tgz
+default	1.4	python	s3://support.elasticmapreduce/spark/install-spark-1.x.py	s3://support.elasticmapreduce/spark/1.4/
 default	1.3	python	s3://support.elasticmapreduce/spark/install-spark-1.x.py	s3://support.elasticmapreduce/spark/1.3/
 default	1.2	python	s3://support.elasticmapreduce/spark/install-spark-1.x.py	s3://support.elasticmapreduce/spark/1.2/
 default	1.1	python	s3://support.elasticmapreduce/spark/install-spark-1.x.py	s3://support.elasticmapreduce/spark/1.1/
 # older configs
-3.6	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.0/spark-1.3.0.d.tgz
-3.5	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.0/spark-1.3.0.d.tgz
-3.4	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.2.1/spark-1.2.1.a.tgz
-3.3	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.2.1/spark-1.2.1.a.tgz
+3.7	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.1/spark-1.3.1.e.tgz
+3.6	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.1/spark-1.3.1.e.tgz
+3.5	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.1/spark-1.3.1.e.tgz
+3.4	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.2.2/spark-1.2.2.a.tgz
+3.3	default	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.2.2/spark-1.2.2.a.tgz
+3	1.3.1.e	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.1/spark-1.3.1.e.tgz
+3	1.3.1.d	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.1/spark-1.3.1.d.tgz
+3	1.3.1.c	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.1/spark-1.3.1.c.tgz
+3	1.3.1.b	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.1/spark-1.3.1.b.tgz
+3	1.3.1.a	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.1/spark-1.3.1.a.tgz
 3	1.3.0.d	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.0/spark-1.3.0.d.tgz
 3	1.3.0.c	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.0/spark-1.3.0.c.tgz
 3	1.3.0.b	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.0/spark-1.3.0.b.tgz
 3	1.3.0.a	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.3.0/spark-1.3.0.a.tgz
+3	1.2.2.a	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.2.2/spark-1.2.2.a.tgz
 3	1.2.1.a	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.2.1/spark-1.2.1.a.tgz
 3	1.2.0.a	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.2.0/spark-1.2.0.a.tgz
 3	1.1.1.e	python	s3://support.elasticmapreduce/spark/install-spark-script.py	s3://support.elasticmapreduce/spark/1.1.1/spark-1.1.1.e.tgz
