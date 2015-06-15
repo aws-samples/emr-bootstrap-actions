@@ -8,6 +8,10 @@ c3.xlarge	4
 cc2.8xlarge	32
 cg1.4xlarge	16
 cr1.8xlarge	32
+d2.2xlarge	8
+d2.4xlarge	16
+d2.8xlarge	36
+d2.xlarge	4
 g2.2xlarge	8
 hi1.4xlarge	16
 hs1.8xlarge	16
