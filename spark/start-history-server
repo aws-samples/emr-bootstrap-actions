@@ -54,7 +54,7 @@ out, err = subprocess.Popen(['grep', '/home/hadoop/conf/yarn-site.xml', '-e', 'r
 master_ip = out.split(":")[0].split("<value>")[1]
 sparkHistoryServerEnableYarn = "spark.yarn.historyServer.address=" + master_ip + ":18080"
 
-subprocess.check_call(["bash","configure-spark.bash","spark.eventLog.enabled=true", "spark.eventLog.dir=hdfs:///spark-logs/", sparkHistoryServerEnableYarn])
+subprocess.check_call(["bash","configure-spark.bash","spark.eventLog.enabled=true", "spark.eventLog.dir=hdfs:///spark-logs/", sparkHistoryServerEnableYarn, "spark.history.fs.logDirectory=hdfs:///spark-logs/"])
 
 # start spark history server
 history_server_script = os.path.join(spark_home,"sbin","start-history-server.sh")
