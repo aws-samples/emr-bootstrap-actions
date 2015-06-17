@@ -9,6 +9,8 @@ Examples Index
 
 - [Understanding CLASSPATH and Enviroment Variables with Spark on YARN](understanding-classpath-envvars-yarn.md)
 
+- [Understanding Spark memory configuration on YARN](spark-memory-yarn.md)
+
 
 # Basic application use
 
