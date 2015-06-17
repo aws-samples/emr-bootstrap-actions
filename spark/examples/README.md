@@ -7,12 +7,16 @@ Examples Index
 
 - [Building a custom Spark distribution for EMR](building-spark-for-emr.md)
 
+- [Understanding CLASSPATH and Enviroment Variables with Spark on YARN](understanding-classpath-envvars-yarn.md)
+
 
 # Basic application use
 
 - [Introduction to Spark](introduction-to-spark.md)
 
 - [How to execute a Spark application via EMR step non-interactively, examples with spark-submit](spark-submit-via-step.md)
+
+- [Using Spark HiveContext with cluster deployment mode on YARN](using-hivecontext-yarn-cluster.md)
 
 
 # Code examples
