@@ -7,7 +7,7 @@ The [Spark Programming Guide](https://spark.apache.org/docs/latest/programming-g
 Important: When initiating the SparkContext do *not* use a constructor or method to set the master value from within the code.  There is a number of examples available on the Internet (not official Spark examples) that take this action which will end up overriding the cofniguration provided by `spark-submit` and may cause the application to fail or not perform as expected when used with a cluster manager.
 
 
-== Java
+## Java
 
 ```
 import org.apache.spark.SparkConf;
@@ -32,7 +32,7 @@ public final class SparkApp {
 }
 ```
 
-== Scala
+## Scala
 
 ```
 import org.apache.spark.SparkContext
