@@ -16,6 +16,8 @@ Examples Index
 
 - [How to execute a Spark application via EMR step non-interactively, examples with spark-submit](spark-submit-via-step.md)
 
+- [Initializing SparkContext in Scala and Java](initializing-sparkcontext.md)
+
 - [Using Spark HiveContext with cluster deployment mode on YARN](using-hivecontext-yarn-cluster.md)
 
 
