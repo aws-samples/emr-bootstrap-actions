@@ -129,6 +129,7 @@ def config():
 		spark_defaults.write("spark.eventLog.enabled  false\n") #default to off, when history server is started will change to true
 		spark_defaults.write("spark.executor.extraJavaOptions         -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:MaxHeapFreeRatio=70 -XX:+CMSClassUnloadingEnabled\n")
 		spark_defaults.write("spark.driver.extraJavaOptions         -Dspark.driver.log.level={0} -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:MaxHeapFreeRatio=70 -XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=512M\n".format(SparkDriverLogLevel))
+		spark_defaults.write("spark.master         yarn\n")
 	subprocess.check_call(["/bin/mv",spark_defaults_tmp_location,spark_default_final_location])
 
 	# bashrc file
