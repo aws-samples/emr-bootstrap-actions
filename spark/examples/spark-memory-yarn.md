@@ -4,7 +4,7 @@ Understanding Spark memory configuration on YARN
 ## Note on Spark versions
 
 This information is based on Spark 1.3.1 on YARN.   Given the speed of development of the Spark project please review Spark documentation for the version being utilized.
-*[Running on YARN](http://spark.apache.org/docs/latest/running-on-yarn.html)
+* [Running on YARN](http://spark.apache.org/docs/latest/running-on-yarn.html)
 
 ## Review of Spark architecture and integration with YARN cluster manager
 
