@@ -3,9 +3,11 @@ Using HiveContext in YARN cluster mode
 
 ## Note on Spark versions
 
-Since the beginning of Spark the exact instructions about how one goes about influencing the CLASSPATH and environment variables of driver, executors and other cluster manager JVMs have often changed from release to release.   This information is current as of Spark release 1.3.1.  Please cross reference the appropriate [Spark documentation](http://spark.apache.org/docs/latest/) for the version in use.   Key reference points in the documentation to consider:
-*[Configuration](http://spark.apache.org/docs/latest/configuration.html)
-*[Running on YARN](http://spark.apache.org/docs/latest/running-on-yarn.html)
+Since the beginning of Spark the exact instructions about how one goes about influencing the CLASSPATH and environment variables of driver, executors and other cluster manager JVMs have often changed from release to release.   This information is current as of Spark release 1.3.1.  Please cross reference the appropriate [Spark documentation](http://spark.apache.org/docs/latest/) for the version in use.   
+
+Key reference points in the documentation to consider:
+* [Configuration](http://spark.apache.org/docs/latest/configuration.html)
+* [Running on YARN](http://spark.apache.org/docs/latest/running-on-yarn.html)
 
 ## Review of Spark architecture and integration with YARN cluster manager
 

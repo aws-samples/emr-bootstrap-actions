@@ -14,11 +14,11 @@ Key reference points in the documentation to consider:
 For a detailed description of Spark on a cluster manager such as YARN please see the Spark documentation [Cluster Mode Overview](http://spark.apache.org/docs/latest/cluster-overview.html).  In brief, Spark uses the concept of *driver* and *executor*.  The SparkContext and client application interface occurs within the driver while the executors handle the computations and in-memory data store as directed by the Spark engine.  It is within the executors that distributed/parallel processing occurs.  When Spark is running on YARN the executor JVM runs within a container (one executor per container).  The driver JVM may run within a YARN Application Master container or external to the YARN as a free standing JVM depending on the deployment mode.
 
 Deployment mode:
-* client
-** Driver run is its own JVM on the machine upon which the spark-submit is executed
-** Application Master container exists but only performs minimal interaction as needed to provide YARN container management, no user application code executes here
-* cluster
-** Driver executes within the Application Master container JVM
+* client  
+** Driver run is its own JVM on the machine upon which the spark-submit is executed  
+** Application Master container exists but only performs minimal interaction as needed to provide YARN container management, no user application code executes here  
+* cluster  
+** Driver executes within the Application Master container JVM  
 
 ## YARN client
 
