@@ -3,9 +3,11 @@ Understanding CLASSPATH and Environment variables with Spark on YARN
 
 ## Note on Spark versions
 
-Since the beginning of Spark the exact instructions about how one goes about influencing the CLASSPATH and environment variables of driver, executors and other cluster manager JVMs have often changed from release to release.   This information is current as of Spark release 1.3.1.  Please cross reference the appropriate [Spark documentation](http://spark.apache.org/docs/latest/) for the version in use.   Key reference points in the documentation to consider:
-*[Configuration](http://spark.apache.org/docs/latest/configuration.html)
-*[Running on YARN](http://spark.apache.org/docs/latest/running-on-yarn.html)
+Since the beginning of Spark the exact instructions about how one goes about influencing the CLASSPATH and environment variables of driver, executors and other cluster manager JVMs have often changed from release to release.   This information is current as of Spark release 1.3.1.  Please cross reference the appropriate [Spark documentation](http://spark.apache.org/docs/latest/) for the version in use.   
+
+Key reference points in the documentation to consider:
+* [Configuration](http://spark.apache.org/docs/latest/configuration.html)
+* [Running on YARN](http://spark.apache.org/docs/latest/running-on-yarn.html)
 
 ## Review of Spark architecture and integration with YARN cluster manager
 
@@ -13,10 +15,10 @@ For a detailed description of Spark on a cluster manager such as YARN please see
 
 Deployment mode:
 * client
-**Driver run is its own JVM on the machine upon which the spark-submit is executed
-**Application Master container exists but only performs minimal interaction as needed to provide YARN container management, no user application code executes here
+** Driver run is its own JVM on the machine upon which the spark-submit is executed
+** Application Master container exists but only performs minimal interaction as needed to provide YARN container management, no user application code executes here
 * cluster
-**Driver executes within the Application Master container JVM
+** Driver executes within the Application Master container JVM
 
 ## YARN client
 
