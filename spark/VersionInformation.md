@@ -51,7 +51,8 @@ To request a specific Spark version build use "-v" to request a specific build v
  * Spark 1.3.1.c (Includes workaround for Ganglia/SPARK-6484) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.1.c)
  * Spark 1.3.1.d (Fix SparkHistory server startup error with EMR step) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.1.d)
  * *Spark 1.3.1.e (Includes SPARK-6352 for Parquet and SparkSQL use of predefined output committer)* [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.1.e)
- * Spark 1.4.0.a (Initial build of Spark's 1.4.0 release including SPARK-8329 [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.4.0.a)
+ * Spark 1.4.0.a (Initial build of Spark's 1.4.0 release including SPARK-8329) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.4.0.a)
+ * Spark 1.4.0.b (Includes sparkR) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.4.0.b)
 
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
 * branch-1.1 ( "-v 1.1 -b \<buildId\>")
