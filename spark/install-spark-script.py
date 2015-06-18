@@ -155,7 +155,7 @@ def config():
 		spark_env.write("export SPARK_DAEMON_JAVA_OPTS=\"-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:MaxHeapFreeRatio=70\"\n")
 		spark_env.write("export SPARK_LOCAL_DIRS={0}\n".format(local_dir))
 		spark_env.write("export SPARK_LOG_DIR={0}\n".format(spark_log_dir))
-		spark_env.write("export SPARK_CLASSPATH=\"{4}/conf:/home/hadoop/conf:{0}/distsupplied/*:{0}/emr/*:{1}/emrfs/*:{2}/share/hadoop/common/lib/*:{3}\"\n".format(spark_classpath,spark_classpath,hadoop_home,lzo_jar,spark_home))
+		spark_env.write("export SPARK_CLASSPATH=\"{4}/conf:/home/hadoop/conf:{0}/distsupplied/*:{0}/emr/*:{1}/emrfs/*:{2}/share/hadoop/common/lib/*:{3}:/usr/share/aws/emr/auxlib/*\"\n".format(spark_classpath,spark_classpath,hadoop_home,lzo_jar,spark_home))
 
 	subprocess.check_call(["mv",spark_env_tmp_location,spark_env_final_location])
 
