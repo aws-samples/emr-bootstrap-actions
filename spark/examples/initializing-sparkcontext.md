@@ -4,7 +4,7 @@ Initializing SparkContext to Scala and Java
 The [Spark Programming Guide](https://spark.apache.org/docs/latest/programming-guide.html) from the official documentation provides many examples and notes around creating a Spark application in Scala, Java and Python.  This  document strives to provide a very basic template for minimal code required to write a Spark application.
 
 
-Important: When initiating the SparkContext do *not* use a constructor or method to set the master value from within the code.  There is a number of examples available on the Internet (not official Spark examples) that take this action which will end up overriding the cofniguration provided by `spark-submit` and may cause the application to fail or not perform as expected when used with a cluster manager.
+Important: When initiating the SparkContext do *not* use a constructor or method to set the master value from within the code.  There is a number of examples available on the Internet (not official Spark examples) that take this action which will end up overriding the configuration provided by `spark-submit` and may cause the application to fail or not perform as expected when used with a cluster manager.
 
 
 ## Java
