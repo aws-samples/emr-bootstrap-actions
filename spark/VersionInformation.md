@@ -1,6 +1,9 @@
 Spark Versions and Builds Available 
 ===================================
 
+**IMPORTANT!! Beginning with EMR AMI 3.8, Spark is available as a native application in EMR.  Please see [EMR's Spark on EMR page](http://aws.amazon.com/elasticmapreduce/details/spark/). Please refer to the EMR documentation for instructions on configuring and using the native Spark.**
+
+
 For installation and examples see  [README.md](README.md).
 
 
@@ -61,4 +64,6 @@ To request a specific Spark version build use "-v" to request a specific build v
 * branch-1.2 ( "-v 1.2 -b \<buildId\>")
  * 2014120500
  * 2014121700
+
+**IMPORTANT!! Beginning with EMR AMI 3.8, Spark is available as a native application in EMR.  Please see [EMR's Spark on EMR page](http://aws.amazon.com/elasticmapreduce/details/spark/). Please refer to the EMR documentation for instructions on configuring and using the native Spark.**
 
