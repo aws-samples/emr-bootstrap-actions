@@ -3,7 +3,7 @@ Spark on EMR
 
 **IMPORTANT!! Beginning with EMR AMI 3.8, Spark is available as a native application in EMR.  Please see [EMR's Spark on EMR page](http://aws.amazon.com/elasticmapreduce/details/spark/). Please refer to the EMR documentation for instructions on configuring and using the native Spark.**
 
-These scripts are an example of installing Spark on EMR as a 3rd patry application and configuring.   Please see https://spark.apache.org/ for details regarding the Spark project.  Additional examples can be found in [/examples/](examples/README.md).
+These scripts are an example of installing Spark on EMR as a 3rd party application and configuring.   Please see https://spark.apache.org/ for details regarding the Spark project.  Additional examples can be found in [/examples/](examples/README.md).
 
 
 ## How to Install/Configure
