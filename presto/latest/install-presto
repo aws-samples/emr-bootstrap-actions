@@ -26,13 +26,13 @@ def parseOptions
 	      		config_options[:port] = port
 	    end
 
-		opt.on("-m",'--MaxMemory [ Memory Specified in Java -Xmx Formatting ]',
-	           "Ex : 512M )") do |xmx_value|
+		opt.on("-m",'--MaxMemory [ Memory (in MB) Specified in Java -Xmx Formatting ]',
+	           "Ex : 512 )") do |xmx_value|
 	      		config_options[:xmx] = xmx_value
 	    end
 
-	    opt.on("-n",'--NurseryMem [ Nursery Memory Specified in Java -Xmn Formatting ]',
-	           "Ex : 512M )") do |nurse|
+	    opt.on("-n",'--NurseryMem [ Nursery Memory (in MB) Specified in Java -Xmn Formatting ]',
+	           "Ex : 512 )") do |nurse|
 	      		config_options[:nurse] = nurse
 	    end
 
@@ -42,9 +42,15 @@ def parseOptions
 	    end
 
 	    opt.on("-b",'--binary [ Location of Self Compiled Binary of Presto. See README for details on what package structure must look like. ]',
-	           "Ex : s3://mybuctet/compiled/presto-compiled.tar.gz") do |bin|
+	           "Ex : s3://mybucket/compiled/presto-compiled.tar.gz") do |bin|
 	      		config_options[:binary] = bin
 	    end
+
+	    opt.on("-j","--cli-jar [ Location of custom CLI jar (implies -c option) ]",
+	    		"Ex : s3://mybucket/presto-cli.jar") do |cli_jar|
+	    		config_options[:cli_jar] = cli_jar
+	    		config_options[:cli] = true
+    	end
 
 	    opt.on("-c",'--install-cli [ Install Presto-CLI. By default set to true ]',
 	           "Ex : false") do |cli|
@@ -65,23 +71,6 @@ def parseOptions
 	opt_parser.parse!
 	return config_options
 end
-
-@parsed = parseOptions
-puts "Installing Presto With Java 1.8 Requirement"
-
-unless @parsed[:binary]
-	@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-server.tar.gz"
-else
-	@parsed[:version] = "user-compiled"
-end
-
-unless @parsed[:presto_home]
-	@presto_home = "/home/hadoop/.versions/presto-server-#{@parsed[:version]}/"
-else
-	@presto_home = @parsed[:presto_home]
-end
-
-puts "Uing Binary From: #{@parsed[:binary]} and installing to #{@presto_home}"
 
 def run(cmd)
   if ! system(cmd) then
@@ -261,7 +250,7 @@ def buildCLIWrapper
 	config = []
 
 	config << "#!/bin/bash"
-	config << "export PATH=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.31-2.b13.5.amzn1.x86_64/jre/bin/:$PATH"
+	config << "export PATH=/usr/lib/jvm/jre-1.8.0-openjdk/bin/:$PATH"
 	config << "#{@presto_home}/presto-cli-executable.jar $@"
 
 	return config.join("\n")
@@ -271,7 +260,7 @@ def buildPrestoLauncher
 	config = []
 
 	config << "#!/bin/sh -eu"
-	config << "export PATH=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.31-2.b13.5.amzn1.x86_64/jre/bin/:$PATH"
+	config << "export PATH=/usr/lib/jvm/jre-1.8.0-openjdk/bin/:$PATH"
 	config << 'exec "$(/usr/bin/dirname "$0")/launcher.py" "$@"'
 
 	return config.join("\n")
@@ -284,19 +273,59 @@ def buildLogProperties
 
 	return config.join("\n")
 end
+
+
+@parsed = parseOptions
+puts "Installing Presto With Java 1.8 Requirement"
+
+@version_home =  "/home/hadoop/.versions"
+
+
+unless @parsed[:binary]
+	@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-server.tar.gz"
+else
+	@parsed[:version] = "user-compiled"
+end
+
+unless @parsed[:presto_home]
+	@presto_home = "#{@version_home}/presto-server-#{@parsed[:version]}/"
+else 
+	@presto_home = @parsed[:presto_home]
+end
+
 	
 # Get The Cluster Information Object
 clusterMetaData = getClusterMetaData
 
-#Now, Lets Fetch The Archives from S3
-#run "curl -kLo /tmp/presto-server.tar.gz http://s3.amazonaws.com/support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-server-0-95.tar.gz"
-run "/home/hadoop/bin/hdfs dfs -get #{@parsed[:binary]} /tmp/presto-server.tar.gz"
-#run "curl -kLo /tmp/presto-cli-0.95-executable.jar http://s3.amazonaws.com/support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-cli-0.95-executable.jar"
+puts "Using Binary From: #{@parsed[:binary]}"
 
-#Extract the Server to its new Home
-run "mkdir -p #{@presto_home}"
+# Now, Lets Fetch The Archives from S3
+run "/home/hadoop/bin/hdfs dfs -get #{@parsed[:binary]} /tmp/presto-server.tar.gz"
+
+
+# Extract the tar
+run "mkdir /tmp/presto-server"
+run "tar -xzvf /tmp/presto-server.tar.gz -C /tmp/presto-server"
+
+# If this is a self-compiled binary, extract temporarily to get the version for presto_home
+if @parsed[:version] == "user-compiled"
+	version = File.basename(Dir["/tmp/presto-server/*"].first)
+	@presto_home = "#{@version_home}/#{version}"
+
+	puts "Installing self-compiled tar to #{@presto_home}"
+
+	# Set up home directory and copy files
+	run "mkdir -p #{@presto_home}"
+	run "mv /tmp/presto-server/#{version}/* #{@presto_home}"
+
+else
+	# Set up home directory and copy files
+	run "mkdir -p #{@presto_home}"
+	run "mv /tmp/presto-server/* #{@presto_home}"
+end
+
 run "mkdir -p #{@presto_home}/etc/catalog/"
-run "tar -xf /tmp/presto-server.tar.gz -C #{@presto_home}"
+
 
 #Move LZO Library Into Presto Libs
 run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/presto/hadoop-lzo-0.4.19.jar #{@presto_home}/plugin/hive-hadoop2/"
@@ -347,7 +376,15 @@ end
 
 #Create Presto Wrapper for CLI if CLI to be installed
 if @parsed[:cli] == true
-	run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-cli-executable.jar /tmp/presto-cli-executable.jar"
+	cli_path = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-cli-executable.jar"
+
+	if @parsed[:cli_jar]
+		cli_path = @parsed[:cli_jar]
+	end
+
+	puts "Uing CLI From: #{cli_path} and installing to #{@presto_home}"
+
+	run "/home/hadoop/bin/hdfs dfs -get #{cli_path} /tmp/presto-cli-executable.jar"
 	run "cp /tmp/presto-cli-executable.jar #{@presto_home}"
 	run "chmod +x #{@presto_home}/presto-cli-executable.jar"
 	if clusterMetaData['isMaster'] == true
@@ -358,6 +395,7 @@ if @parsed[:cli] == true
 		sudo "ln -s /home/hadoop/presto-cli /usr/bin/"
 	end
 end
+
 
 #Set Symnlinkg For Presto to Home-Folder
 if File.exist? "/home/hadoop/hive/bin/hive-init"
