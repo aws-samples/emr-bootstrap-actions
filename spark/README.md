@@ -46,7 +46,9 @@ Note: Spark is available in cn-north-1 starting with 1.2.0.   For eu-central-1 r
 
 #### Current version available:
 
-Spark 1.3.1 (1.3.1.e) with EMR AMI 3.5.x and later
+Default is Spark 1.3.1 (1.3.1.e) with EMR AMI 3.5.x  to 3.8.0 *Beginning with EMR AMI 3.8, Spark is available as a native application in EMR.  Please see [EMR's Spark on EMR page](http://aws.amazon.com/elasticmapreduce/details/spark/).*
+
+Spark 1.4.0 (1.4.0.b) is available with EMR AMI 3.8.x when explicitly requested with `-v 1.4.0.b`.
 
 
 See [VersionInformation.md](VersionInformation.md) for detailed Spark version information and previous versions.
