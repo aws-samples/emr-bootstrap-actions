@@ -25,7 +25,7 @@ sudo("cp /mnt/var/lib/instance-controller/extraInstanceData.json" +
 @run_dir = "/home/hadoop/elasticsearch/"
 # this is where additional logs are sent in case terminal output needs to be caught
 @log_dir = "/home/hadoop/elasticsearch/"
-@elasticsearch_version = "1.5.1"
+@elasticsearch_version = "1.6.0"
 @elasticsearch_port_master = 9200
 @elasticsearch_port_slaves = 9202
 
