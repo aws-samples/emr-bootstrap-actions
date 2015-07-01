@@ -51,6 +51,12 @@ def parseOptions
 	      		config_options[:cli] = cli
 	    end
 
+	    opt.on("-j","--cli-jar [ Location of custom CLI jar (implies -c option) ]",
+	           "Ex : s3://mybucket/presto-cli.jar") do |cli_jar|
+	      		config_options[:cli_jar] = cli_jar
+	      		config_options[:cli] = true
+	    end
+
 	    opt.on("-M",'--metastore-uri [ Location of Already Running Hive MetaStore. This will stop the BA from launching the Hive MetaStore Service on the Master Instance ]',
 	           "Ex : thrift://192.168.0.1:9083") do |metaURI|
 	      		config_options[:metaURI] = metaURI
@@ -82,6 +88,12 @@ else
 end
 
 puts "Uing Binary From: #{@parsed[:binary]} and installing to #{@presto_home}"
+
+unless @parsed[:cli_jar]
+	@cli_jar = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-cli-executable.jar"
+else
+	@cli_jar = @parsed[:cli_jar]
+end
 
 def run(cmd)
   if ! system(cmd) then
@@ -347,7 +359,7 @@ end
 
 #Create Presto Wrapper for CLI if CLI to be installed
 if @parsed[:cli] == true
-	run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-cli-executable.jar /tmp/presto-cli-executable.jar"
+	run "/home/hadoop/bin/hdfs dfs -get #{@cli_jar} /tmp/presto-cli-executable.jar"
 	run "cp /tmp/presto-cli-executable.jar #{@presto_home}"
 	run "chmod +x #{@presto_home}/presto-cli-executable.jar"
 	if clusterMetaData['isMaster'] == true
