@@ -12,7 +12,7 @@ def sudo(cmd)
 end
 
 @is_master = Emr::JsonInfoFile.new('instance')['isMaster'].to_s == 'true'
-@kibana_version = "4.0.2-linux-x64"
+@kibana_version = "4.1.0-linux-x64"
 @target_dir = "/home/hadoop/kibana/"
 @nginx_dir = "/etc/nginx/"
 @es_port_num = 9200
