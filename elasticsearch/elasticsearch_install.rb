@@ -25,7 +25,7 @@ sudo("cp /mnt/var/lib/instance-controller/extraInstanceData.json" +
 @run_dir = "/home/hadoop/elasticsearch/"
 # this is where additional logs are sent in case terminal output needs to be caught
 @log_dir = "/home/hadoop/elasticsearch/"
-@elasticsearch_version = "1.5.1"
+@elasticsearch_version = "1.6.0"
 @elasticsearch_port_master = 9200
 @elasticsearch_port_slaves = 9202
 
@@ -74,7 +74,7 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
 
   install_dir = "#{target_dir}elasticsearch-#{elasticsearch_version}/"
   # installing elasticsearch aws plugin
-  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.5.0")
+  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.6.0")
   # installing hdfs repository
   run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-repository-hdfs/2.1.0.Beta3-hadoop2")
 
