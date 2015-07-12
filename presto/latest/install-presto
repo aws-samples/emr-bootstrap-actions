@@ -279,7 +279,7 @@ def buildCLIWrapper
 	config = []
 
 	config << "#!/bin/bash"
-	config << "export PATH=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.31-2.b13.5.amzn1.x86_64/jre/bin/:$PATH"
+	config << "export PATH=/usr/lib/jvm/jre-1.8.0-openjdk/bin:$PATH"
 	config << "#{@presto_home}/presto-cli-executable.jar $@"
 
 	return config.join("\n")
@@ -289,7 +289,7 @@ def buildPrestoLauncher
 	config = []
 
 	config << "#!/bin/sh -eu"
-	config << "export PATH=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.31-2.b13.5.amzn1.x86_64/jre/bin/:$PATH"
+	config << "export PATH=/usr/lib/jvm/jre-1.8.0-openjdk/bin:$PATH"
 	config << 'exec "$(/usr/bin/dirname "$0")/launcher.py" "$@"'
 
 	return config.join("\n")
