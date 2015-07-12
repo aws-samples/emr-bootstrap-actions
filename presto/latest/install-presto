@@ -7,9 +7,7 @@ require 'optparse'
 def parseOptions
 	config_options = {
 		:port => 9083,
-		#:presto_home => "/home/hadoop/.versions/presto-server-0.95/",
 		:cli => true,
-		#:binary => "s3://support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-server-0-95.tar.gz",
 		:version => "0.99"
 	}
 
@@ -77,8 +75,16 @@ puts "Installing Presto With Java 1.8 Requirement"
 
 unless @parsed[:binary]
 	@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-server.tar.gz"
+    @user_binary = false
 else
-	@parsed[:version] = "user-compiled"
+    # The assumption here is that a person that is providing a binary has either
+    # downloaded the binary from prestodb.io or built from source from the
+    # presto github repo (or a fork of that repo).  All of these methods produce
+    # a gzipped tarball with a top-level directory with the same name as the
+    # basename of the file (e.g., presto-server-0.107,
+    # presto-server-0.108-SNAPSHOT, etc.).
+	@parsed[:version] = File.basename(@parsed[:binary], ".tar.gz").split("-")[2..-1].join('-')
+    @user_binary = true
 end
 
 unless @parsed[:presto_home]
@@ -87,7 +93,7 @@ else
 	@presto_home = @parsed[:presto_home]
 end
 
-puts "Uing Binary From: #{@parsed[:binary]} and installing to #{@presto_home}"
+puts "Using Binary From: #{@parsed[:binary]} and installing to #{@presto_home}"
 
 unless @parsed[:cli_jar]
 	@cli_jar = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-cli-executable.jar"
@@ -301,14 +307,19 @@ end
 clusterMetaData = getClusterMetaData
 
 #Now, Lets Fetch The Archives from S3
-#run "curl -kLo /tmp/presto-server.tar.gz http://s3.amazonaws.com/support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-server-0-95.tar.gz"
 run "/home/hadoop/bin/hdfs dfs -get #{@parsed[:binary]} /tmp/presto-server.tar.gz"
-#run "curl -kLo /tmp/presto-cli-0.95-executable.jar http://s3.amazonaws.com/support.elasticmapreduce/bootstrap-actions/presto/0.95/presto-cli-0.95-executable.jar"
 
 #Extract the Server to its new Home
-run "mkdir -p #{@presto_home}"
+if @user_binary == true
+	@install_dir = File.dirname(@presto_home)
+	run "mkdir -p #{@install_dir}"
+	run "tar -xf /tmp/presto-server.tar.gz -C #{@install_dir}"
+else
+	run "mkdir -p #{@presto_home}"
+	run "tar -xf /tmp/presto-server.tar.gz -C #{@presto_home}"
+end
+
 run "mkdir -p #{@presto_home}/etc/catalog/"
-run "tar -xf /tmp/presto-server.tar.gz -C #{@presto_home}"
 
 #Move LZO Library Into Presto Libs
 run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/presto/hadoop-lzo-0.4.19.jar #{@presto_home}/plugin/hive-hadoop2/"
