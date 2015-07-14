@@ -53,7 +53,17 @@ Only tested against AMI 3.3.2 >
 
 ###Supported Versions
  - 0.99
- - 0.95
+ - 0.100
+ - 0.101
+ - 0.102
+ - 0.103
+ - 0.104
+ - 0.105
+ - 0.106
+ - 0.107
+ - 0.108
+ - 0.109
+ - 0.110 [ Default Install Version ]
 
 ###Examples
 Using the AWS CLI tools you can launch a cluster with the following command: 
