@@ -80,7 +80,7 @@ puts "Installing Presto With Java 1.8 Requirement"
 
 unless @parsed[:binary]
 	#@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-server.tar.gz"
-	@parsed[:binary] = "s3:/support.elasticmapreduce/bootstrap-actions/presto/versions/#{@parsed[:version]}/presto-server-#{@parsed[:version]}.tar.gz"
+	@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/versions/#{@parsed[:version]}/presto-server-#{@parsed[:version]}.tar.gz"
     @user_binary = false
 else
     # The assumption here is that a person that is providing a binary has either
