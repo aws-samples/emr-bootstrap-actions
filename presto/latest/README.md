@@ -40,6 +40,7 @@ Only tested against AMI 3.3.2 >
 - 13/07/2015 : Changed default Presto packaging to conform to assume same layout as prestodb.io
 - 10/06/2015 : Changed support for custom server binaries to assume the tarball layout that comes from prestodb.io
 - 10/06/2015 : Added custom CLI jar support.
+- 21/04/2015 : JSON Tuple Casting Support added: Versions > 0.105 [Example](https://github.com/facebook/presto/issues/2756)
 - 07/04/2015 : Added support to specify a Remote MetaStore Service
 - 31/03/2015 : Added Support for Selective CLI installation and to specify your own compiled Presto Binary
 - 26/02/2015 : Added Support for AWS EC2 Roles 
@@ -48,8 +49,6 @@ Only tested against AMI 3.3.2 >
 ###Future Improvememnts
 - Pass config file properties as arguments
 - [JSON tuple generation](https://github.com/facebook/presto/pull/1724)
-- [Foreground metastore refresh](https://github.com/facebook/presto/pull/1744)
-- [Handling s3 Socket Timeout](https://github.com/facebook/presto/pull/1478)
 
 ###Supported Versions
  - 0.99
