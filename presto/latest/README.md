@@ -48,7 +48,6 @@ Only tested against AMI 3.3.2 >
 
 ###Future Improvememnts
 - Pass config file properties as arguments
-- [JSON tuple generation](https://github.com/facebook/presto/pull/1724)
 
 ###Supported Versions
  - 0.99
