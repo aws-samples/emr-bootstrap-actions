@@ -14,7 +14,10 @@ do
 	TARGET_KEY="${var%=*}"
 	NEW_VALUE="${var#*=}"
 	sed -c -i "s/^$TARGET_KEY\b.*/\#\0/" $CONFIG_FILE
-	echo "$TARGET_KEY	$NEW_VALUE" >> $CONFIG_FILE
+	if [ -n "$NEW_VALUE" ]
+        then
+		echo "$TARGET_KEY	$NEW_VALUE" >> $CONFIG_FILE
+	fi
 done
 
 #write out new file contents
