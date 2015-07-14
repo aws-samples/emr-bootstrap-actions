@@ -1,0 +1,14 @@
+#!/bin/sh
+#Run this after ./setup_drill
+
+pushd /tmp
+rm -rf jets3t-0.9.3.zip jets3t-0.9.3
+wget http://bitbucket.org/jmurty/jets3t/downloads/jets3t-0.9.3.zip
+unzip jets3t-0.9.3.zip
+cp -f jets3t-0.9.3/jars/jets3t-0.9.3.jar /home/hadoop/drill/jars/3rdparty
+pushd /home/hadoop/drill/bin
+cp -af hadoop-excludes.txt hadoop-excludes.txt.old
+grep -v jets3t < hadoop-excludes.txt.old > hadoop-excludes.txt
+popd
+popd
+sudo /home/hadoop/drill/bin/drillbit.sh restart
