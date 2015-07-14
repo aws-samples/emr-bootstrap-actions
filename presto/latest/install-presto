@@ -78,8 +78,6 @@ end
 @parsed = parseOptions
 puts "Installing Presto With Java 1.8 Requirement"
 
-exit 0
-
 unless @parsed[:binary]
 	#@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-server.tar.gz"
 	@parsed[:binary] = "s3:/support.elasticmapreduce/bootstrap-actions/presto/versions/#{@parsed[:version]}/presto-server-#{@parsed[:version]}.tar.gz"
