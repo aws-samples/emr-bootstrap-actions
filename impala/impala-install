@@ -8,7 +8,7 @@ def parseOptions
 		:impala_home => "/home/hadoop",
 		:cli => true,
 		:log_dir => "/mnt/var/log/apps/impala",
-		:binary => "s3://mombergm.store/impala2/impala-2.2.0-AMZ.tar.gz",
+		:binary => "s3://support.elasticmapreduce/bootstrap-actions/impala/impala-2.2.0-AMZ.tar.gz",
 		:HiveMetaStorePort => 9083
 	}
 
@@ -23,6 +23,11 @@ def parseOptions
 	    opt.on("-p",'--hive-port [ Hive Metastore Port ]',
 	           "Ex : 9083 )") do |port|
 	      		config_options[:port] = port
+	    end
+
+	    opt.on("-l",'--log-dir [ Log Directory ]',
+	           "Ex : /home/hadoop/ )") do |log_dir|
+	      		config_options[:log_dir] = log_dir
 	    end
 
 	end
@@ -161,7 +166,7 @@ sudo "chown -R hadoop:hadoop #{@parsed[:log_dir]}"
 
 if clusterMetaData['isMaster'] == true
 	puts "Downloading the Impala Shell"
-	run "/home/hadoop/bin/hdfs dfs -get s3://mombergm.store/impala2/impala-shell-2.2.0-AMZ.tar.gz /mnt/tmp/impala-shell.tar.gz"
+	run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/impala/impala-shell-2.2.0-AMZ.tar.gz /mnt/tmp/impala-shell.tar.gz"
 	run "tar -xvf /mnt/tmp/impala-shell.tar.gz -C /home/hadoop/.versions/"
 	#This will extract the shell to: /home/hadoop/.versions/impala-shell-2.2.0-AMZ/
 
@@ -177,7 +182,7 @@ end
 run "rm -rf /mnt/tmp/"
 
 puts "Building Impala Launcher"
-run "/home/hadoop/bin/hdfs dfs -get s3://mombergm.store/impala2/impala-launcher #{@parsed[:impala_home]}/impala/bin/impala-launcher"
+run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/impala/impala-launcher #{@parsed[:impala_home]}/impala/bin/impala-launcher"
 open("/mnt/var/impala.vars", 'w') do |f|
   	f.puts("export IMPALA_HOME=#{@parsed[:impala_home]}
 export LOG_DIR=#{@parsed[:log_dir]}")
