@@ -2,6 +2,9 @@ Running Presto on EMR:
 ======================
 Currently presto is supported on EMR through a bootstrap action. 
 
+###Latest Version
+For the latest version of Presto supported by EMR, please look in the "latest" folder of this repository. 
+
 Bootstrap Action Arguments:
 ==========================
 

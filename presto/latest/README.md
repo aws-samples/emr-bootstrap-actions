@@ -36,8 +36,11 @@ This BA requires that you also install Hive 13 on your cluster as it uses Hive a
 Only tested against AMI 3.3.2 >
 
 ###Changes
+- 13/07/2015 : Updated default install version to 0.110
+- 13/07/2015 : Changed default Presto packaging to conform to assume same layout as prestodb.io
 - 10/06/2015 : Changed support for custom server binaries to assume the tarball layout that comes from prestodb.io
 - 10/06/2015 : Added custom CLI jar support.
+- 21/04/2015 : JSON Tuple Casting Support added: Versions > 0.105 [Example](https://github.com/facebook/presto/issues/2756)
 - 07/04/2015 : Added support to specify a Remote MetaStore Service
 - 31/03/2015 : Added Support for Selective CLI installation and to specify your own compiled Presto Binary
 - 26/02/2015 : Added Support for AWS EC2 Roles 
@@ -45,13 +48,20 @@ Only tested against AMI 3.3.2 >
 
 ###Future Improvememnts
 - Pass config file properties as arguments
-- [JSON tuple generation](https://github.com/facebook/presto/pull/1724)
-- [Foreground metastore refresh](https://github.com/facebook/presto/pull/1744)
-- [Handling s3 Socket Timeout](https://github.com/facebook/presto/pull/1478)
 
 ###Supported Versions
  - 0.99
- - 0.95
+ - 0.100
+ - 0.101
+ - 0.102
+ - 0.103
+ - 0.104
+ - 0.105
+ - 0.106
+ - 0.107
+ - 0.108
+ - 0.109
+ - 0.110 [ Default Install Version ]
 
 ###Examples
 Using the AWS CLI tools you can launch a cluster with the following command: 
@@ -81,11 +91,6 @@ SELECT name,COUNT(name) FROM test GROUP BY name;
 
 ###Build your own Binary
 We have added the ability for you to compile your own version of Presto and download it from S3.  
-In order for the installation to be successfull the binary must be compressed into a .tar.gz file from within the Presto root folder.  
-In other words, the tarball must not have a folder within it, but rather the final structure of the presto-server folder.  
-The tar file will be extracted to a folder /home/hadoop/.versions/presto-server-user-compiled/ with the command `tar -xf /tmp/presto-server -C /home/hadoop/.versions/presto-server-user-compiled/` 
-It is assumed that after the extraction the etc, plugin, lib and bin folder is in /home/hadoop/.versions/presto-server-user-compiled/  
-Once extraction is completed all the relevant symlinks will be added to make the folder accessible from /home/hadoop/presto-server/   
-The easiest way to create a Tarball like this is by cd to the folder that contains the bin folder and running the command `tar -zcvf /path/to/tar.tar.gz *`  
+It is expected that the binary is compressed and tarballed in a .tar.gz file containting the same folder structure of that provided by the Prestodb.io download.
 
 

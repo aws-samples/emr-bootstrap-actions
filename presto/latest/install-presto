@@ -8,7 +8,7 @@ def parseOptions
 	config_options = {
 		:port => 9083,
 		:cli => true,
-		:version => "0.99"
+		:version => "0.110"
 	}
 
 	opt_parser = OptionParser.new do |opt|
@@ -39,7 +39,7 @@ def parseOptions
 	      		config_options[:version] = version
 	    end
 
-	    opt.on("-b",'--binary [ Location of Self Compiled Binary of Presto. See README for details on what package structure must look like. ]',
+	    opt.on("-b",'--binary [ Location of Self Compiled Binary of Presto. Assuming directory layout of tarbal downloaded from Prestodb.io ]',
 	           "Ex : s3://mybuctet/compiled/presto-compiled.tar.gz") do |bin|
 	      		config_options[:binary] = bin
 	    end
@@ -60,6 +60,11 @@ def parseOptions
 	      		config_options[:metaURI] = metaURI
 	    end
 
+	    opt.on("-H",'--hiveConfig [ Hive Specifc Configuration for Catalog, Keys seperated by comma ]',
+	           "Ex : hive.s3.max-client-retries=50,hive.s3.connect-timeout=2m") do |hiveConf|
+	      		config_options[:hiveConf] = hiveConf
+	    end
+
 	    opt.on('-h', '--help', 'Display this message') do
 	      puts opt
 	      exit
@@ -74,7 +79,8 @@ end
 puts "Installing Presto With Java 1.8 Requirement"
 
 unless @parsed[:binary]
-	@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-server.tar.gz"
+	#@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-server.tar.gz"
+	@parsed[:binary] = "s3://support.elasticmapreduce/bootstrap-actions/presto/versions/#{@parsed[:version]}/presto-server-#{@parsed[:version]}.tar.gz"
     @user_binary = false
 else
     # The assumption here is that a person that is providing a binary has either
@@ -96,7 +102,8 @@ end
 puts "Using Binary From: #{@parsed[:binary]} and installing to #{@presto_home}"
 
 unless @parsed[:cli_jar]
-	@cli_jar = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-cli-executable.jar"
+	@cli_jar = "s3://support.elasticmapreduce/bootstrap-actions/presto/versions/#{@parsed[:version]}/presto-cli-#{@parsed[:version]}-executable.jar"
+	#@cli_jar = "s3://support.elasticmapreduce/bootstrap-actions/presto/#{@parsed[:version]}/presto-cli-executable.jar"
 else
 	@cli_jar = @parsed[:cli_jar]
 end
@@ -210,6 +217,12 @@ def setHiveProperties(metaData,parsed)
 	config << "hive.s3.staging-directory=/mnt/tmp/"
 	config << "hive.s3.use-instance-credentials=#{metaData['roles']}"
 
+	if parsed[:hiveConf]
+		parsed[:hiveConf].split(',').each do | option |
+			config << option
+		end
+	end
+
 	puts "Setting Hive Catalog With the Following Properties:"
 	puts config.join(" , ")
 	return config.join("\n")
@@ -315,8 +328,9 @@ if @user_binary == true
 	run "mkdir -p #{@install_dir}"
 	run "tar -xf /tmp/presto-server.tar.gz -C #{@install_dir}"
 else
-	run "mkdir -p #{@presto_home}"
-	run "tar -xf /tmp/presto-server.tar.gz -C #{@presto_home}"
+	@install_dir = File.dirname(@presto_home)
+	run "mkdir -p #{@install_dir}"
+	run "tar -xf /tmp/presto-server.tar.gz -C #{@install_dir}"
 end
 
 run "mkdir -p #{@presto_home}/etc/catalog/"
