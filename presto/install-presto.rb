@@ -77,10 +77,10 @@ $is_master = instance_info['isMaster'].to_s == 'true'
 $master_private_dns = job_flow['masterPrivateDnsName'].to_s
 $presto_install_dir="/home/hadoop/.versions"
 $presto_run_dir="/mnt/var/run/presto"
-$hive_version=Dir["/home/hadoop/.versions/hive*"].to_s.split('/')[-1].split('-')[-1]
+$hive_version=Dir["/home/hadoop/.versions/hive*"].to_s.split('/')[-1].gsub(/[\[\]\"]/,'').split('-')[1]
 
 class PrestoConfig
-  @@s3_presto_default_config = "s3://thaparp-samples/presto/default_presto_config.json"
+  @@s3_presto_default_config = "s3://support.elasticmapreduce/bootstrap-actions/presto/default_presto_config.json"
   @@special_properties = ["coordinator", "discovery.uri", "node.id", "http-server.http.port"]
   def initialize(is_master, master_dns, s3_path_to_config, hive_metastore_port)
     @@is_master = is_master
@@ -208,8 +208,8 @@ end
 #parses the configurable options given with the bootstrap action. All are optional
 def parseOptions
   configurable_options = {
-      :s3_path_to_presto_server_bin => "s3://thaparp-samples/presto/0.78-with-patches/presto-server-0.78.tar.gz",
-      :s3_path_to_presto_cli => "s3://thaparp-samples/presto/0.78-with-patches/presto-cli-0.78-executable.jar",
+      :s3_path_to_presto_server_bin => "s3://support.elasticmapreduce/bootstrap-actions/presto/presto-server-0.78.tar.gz",
+      :s3_path_to_presto_cli => "s3://support.elasticmapreduce/bootstrap-actions/presto/presto-cli-0.78-executable.jar",
       :hive_metastore_port => "9083"
   }
 
