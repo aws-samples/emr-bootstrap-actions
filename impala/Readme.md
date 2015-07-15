@@ -26,7 +26,7 @@ Built on Sun, 07 Jun 2015 13:17:11 UTC
 Using the AWS CLI tools you can launch a cluster with the following command: 
 ####Default Options
 ```
-aws emr create-cluster --name="PRESTO" --ami-version=3.3.2 --applications Name=hive --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge --bootstrap-action Name="Install Impala2",Path="s3://support.elasticmapreduce/bootstrap-actions/impala/impala-install"
+aws emr create-cluster --name="Impala 2.2.0" --ami-version=3.7.0 --applications Name=hive --ec2-attributes KeyName=[KEY_NAME] --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=m3.xlarge --bootstrap-action Name="Install Impala2",Path="s3://support.elasticmapreduce/bootstrap-actions/impala/impala-install"
 ```
 
 
