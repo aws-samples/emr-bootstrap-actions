@@ -25,7 +25,7 @@ sudo("cp /mnt/var/lib/instance-controller/extraInstanceData.json" +
 @run_dir = "/home/hadoop/elasticsearch/"
 # this is where additional logs are sent in case terminal output needs to be caught
 @log_dir = "/home/hadoop/elasticsearch/"
-@elasticsearch_version = "1.5.1"
+@elasticsearch_version = "1.6.0"
 @elasticsearch_port_master = 9200
 @elasticsearch_port_slaves = 9202
 
@@ -74,9 +74,9 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
 
   install_dir = "#{target_dir}elasticsearch-#{elasticsearch_version}/"
   # installing elasticsearch aws plugin
-  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.5.0")
+  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-cloud-aws/2.6.0")
   # installing hdfs repository
-  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-repository-hdfs/2.1.0.Beta3-hadoop2")
+  run("#{install_dir}bin/plugin -install elasticsearch/elasticsearch-repository-hdfs/2.1.0-hadoop2")
 
   # replace yaml with new config file
   run("mv elasticsearch.yml #{install_dir}config/elasticsearch.yml")
@@ -84,14 +84,14 @@ def install_elasticsearch(target_dir, run_dir, log_dir, elasticsearch_version)
 end
 
 def install_hadoop_plugin(target_dir, run_dir)
-  run("wget https://download.elasticsearch.org/hadoop/elasticsearch-hadoop-2.1.0.Beta3.zip --no-check-certificate")
-  run("mv elasticsearch-hadoop-2.1.0.Beta3.zip #{target_dir}")
-  run("unzip #{target_dir}elasticsearch-hadoop-2.1.0.Beta3.zip -d #{target_dir}")
-  run("echo export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:#{@target_dir}elasticsearch-hadoop-2.1.0.Beta3/dist/* >> ~/.bashrc")
+  run("wget https://download.elasticsearch.org/hadoop/elasticsearch-hadoop-2.1.0.zip --no-check-certificate")
+  run("mv elasticsearch-hadoop-2.1.0.zip #{target_dir}")
+  run("unzip #{target_dir}elasticsearch-hadoop-2.1.0.zip -d #{target_dir}")
+  run("echo export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:#{@target_dir}elasticsearch-hadoop-2.1.0/dist/* >> ~/.bashrc")
 end
 
 def clean_up
-  run "rm -Rf #{@target_dir}elasticsearch-hadoop-2.1.0.Beta3.zip"
+  run "rm -Rf #{@target_dir}elasticsearch-hadoop-2.1.0.zip"
   run "rm elasticsearch-#{@elasticsearch_version}.tar.gz"
 end
 

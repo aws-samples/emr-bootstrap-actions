@@ -1,0 +1,337 @@
+#!/usr/bin/ruby
+require 'net/http'
+require 'json'
+require 'optparse'
+
+def parseOptions
+	config_options = {
+		:impala_home => "/home/hadoop",
+		:cli => true,
+		:log_dir => "/mnt/var/log/apps/impala",
+		:binary => "s3://support.elasticmapreduce/bootstrap-actions/impala/impala-2.2.0-AMZ.tar.gz",
+		:HiveMetaStorePort => 9083
+	}
+
+	opt_parser = OptionParser.new do |opt|
+    	opt.banner = "Usage: impala-install [OPTIONS]"
+
+   		opt.on("-d",'--home-dir [ Home Directory ]',
+	           "Ex : /home/hadoop/ )") do |impala_home|
+	      		config_options[:impala_home] = impala_home
+	    end
+
+	    opt.on("-p",'--hive-port [ Hive Metastore Port ]',
+	           "Ex : 9083 )") do |port|
+	      		config_options[:port] = port
+	    end
+
+	    opt.on("-l",'--log-dir [ Log Directory ]',
+	           "Ex : /home/hadoop/ )") do |log_dir|
+	      		config_options[:log_dir] = log_dir
+	    end
+
+	end
+	opt_parser.parse!
+	return config_options
+end
+
+@parsed = parseOptions
+puts "Installing Impala 2.2.0-AMZ"
+
+def run(cmd)
+  if ! system(cmd) then
+    raise "Command failed: #{cmd}"
+  end
+end
+
+def sudo(cmd)
+  run("sudo #{cmd}")
+end
+
+def getClusterMetaData
+	metaData = {}
+	jobFlow = JSON.parse(File.read('/mnt/var/lib/info/job-flow.json'))
+	userData = JSON.parse(Net::HTTP.get(URI('http://169.254.169.254/latest/user-data/')))
+
+	#Determine if Instance Has IAM Roles
+	req = Net::HTTP.get_response(URI('http://169.254.169.254/latest/meta-data/iam/security-credentials/'))
+	metaData['roles'] = (req.code.to_i == 200) ? true : false
+
+	metaData['instanceId'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/instance-id/'))
+	metaData['instanceType'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/instance-type/'))
+	metaData['masterPrivateDnsName'] = jobFlow['masterPrivateDnsName']
+	metaData['isMaster'] = userData['isMaster']
+
+	return metaData
+end
+
+clusterMetaData = getClusterMetaData
+
+def setImpalaConfig(metaData,parsed)
+	config = []
+
+	config << "export HADOOP_VERSION=2.4.0
+export HBASE_VERSION=0.94.18
+export HIVE_VERSION=0.11.0
+export ZOOKEEPER_VERSION=3.4.5
+
+export IMPALA_BIN=$IMPALA_HOME/sbin-retail
+export HIVE_HOME=/usr/lib/hive
+export IMPALA_CONF_DIR=$IMPALA_HOME/conf
+export HADOOP_CONF_DIR=/home/hadoop/conf
+export HIVE_CONF_DIR=/home/hadoop/hive/conf
+export LIBHDFS_OPTS=${LIBHDFS_OPTS:--Djava.library.path=$IMPALA_HOME/lib}
+export MYSQL_CONNECTOR_JAR=/home/hadoop/.versions/hive-0.13.1-amzn-2/lib/mysql-connector-java-5.1.30.jar
+export HADOOP_HOME=/home/hadoop"
+
+	config << "export IMPALA_STATE_STORE_PORT=24000"
+	config << "export IMPALA_CATALOG_PORT=26000"
+	config << "export IMPALA_BACKEND_PORT=22000"
+	config << "export IMPALA_MEM_LIMIT=80%"
+	config << "export IMPALA_HDFS_THREAD=16"
+	config << "export IMPALA_CORE_THREAD=3"
+	config << "export IMPALA_BACKEND_THREAD=64"
+	config << "export IMPALA_FRONTEND_THREAD=64"
+	config << "export IMPALA_LOG_DIR=#{parsed[:log_dir]}"
+	config << "export GLOG_v=1"
+	config << "export HADOOP_NAMENODE_HOST=#{metaData['masterPrivateDnsName']}"
+	config << "export HADOOP_NAMENODE_PORT=9000"
+	config << "export IMPALA_STATE_STORE_HOST=#{metaData['masterPrivateDnsName']}"
+	config << "export IMPALA_CATALOG_HOST=#{metaData['masterPrivateDnsName']}"
+
+	config << '
+IMPALA_CATALOG_ARGS=" -log_dir=${IMPALA_LOG_DIR} "
+IMPALA_STATE_STORE_ARGS=" -log_dir=${IMPALA_LOG_DIR} -state_store_port=${IMPALA_STATE_STORE_PORT}"
+IMPALA_SERVER_ARGS=" \
+    -log_dir=${IMPALA_LOG_DIR} \
+    -catalog_service_host=${IMPALA_CATALOG_HOST} \
+    -state_store_port=${IMPALA_STATE_STORE_PORT} \
+    -use_statestore \
+    -state_store_host=${IMPALA_STATE_STORE_HOST} \
+    -be_port=${IMPALA_BACKEND_PORT}"
+
+ENABLE_CORE_DUMPS=false'
+
+	return config.join("\n")
+end
+
+
+def launchMetaStoreLauncher
+	open("/tmp/start-metastore", 'w') do |f|
+	  	f.write("
+	  		#!/bin/bash
+			while true; do
+			HIVE_SERVER=$(ps aux | grep hiveserver2 | grep -v grep | awk '{print $2}')
+			if [ $HIVE_SERVER ]; then
+			        sleep 10
+			        echo Hive Server Running, Lets Check the Metastore
+			        STORE_PID=$(ps aux | grep -i metastore | grep -v grep | grep -v \"start-metastore\"| awk '{print $2}')
+			        if [ \"$STORE_PID\" ]; then
+			                for pid in $STORE_PID; do
+			                        echo killing pid $pid
+			                        sudo kill -9 $pid
+			                done
+			        fi
+			        echo Launching Metastore
+			        /home/hadoop/hive/bin/hive --service metastore -p #{@parsed[:HiveMetaStorePort]} 2>&1 >> /mnt/var/log/apps/hive-metastore.log &
+			        exit 0
+			fi
+			echo Hive Server Not Running Yet
+			sleep 10;
+			done
+	  	")
+	end
+	run "chmod +x /tmp/start-metastore"
+	run "/tmp/start-metastore 2>&1 >> /mnt/var/log/apps/meta-store-starter.log &"
+end
+
+#Set The MetaStore
+if clusterMetaData['isMaster'] == true
+
+	if !@parsed[:metaURI]
+		launchMetaStoreLauncher
+	end
+end
+
+
+puts "Downloading the Binary Package"
+run "mkdir -p /mnt/tmp/"
+run "mkdir -p #{@parsed[:impala_home]}"
+run "/home/hadoop/bin/hdfs dfs -get #{@parsed[:binary]} /mnt/tmp/impala-binary.tar.gz"
+run "tar -xvf /mnt/tmp/impala-binary.tar.gz -C #{@parsed[:impala_home]}"
+
+#Make the LogDir
+sudo "mkdir -p #{@parsed[:log_dir]}"
+sudo "chown -R hadoop:hadoop #{@parsed[:log_dir]}"
+
+if clusterMetaData['isMaster'] == true
+	puts "Downloading the Impala Shell"
+	run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/impala/impala-shell-2.2.0-AMZ.tar.gz /mnt/tmp/impala-shell.tar.gz"
+	run "tar -xvf /mnt/tmp/impala-shell.tar.gz -C /home/hadoop/.versions/"
+	#This will extract the shell to: /home/hadoop/.versions/impala-shell-2.2.0-AMZ/
+
+	puts "Building Shell Wrapper"
+	open("/tmp/impala-shell", 'w') do |f|
+	  	f.puts('#!/bin/bash
+. /home/hadoop/.bashrc
+/home/hadoop/.versions/impala-shell-2.2.0-AMZ/impala-shell "$@"')
+	end
+	run "chmod +x /tmp/impala-shell"
+	sudo "mv /tmp/impala-shell /usr/bin/"
+end
+run "rm -rf /mnt/tmp/"
+
+puts "Building Impala Launcher"
+run "/home/hadoop/bin/hdfs dfs -get s3://support.elasticmapreduce/bootstrap-actions/impala/impala-launcher #{@parsed[:impala_home]}/impala/bin/impala-launcher"
+open("/mnt/var/impala.vars", 'w') do |f|
+  	f.puts("export IMPALA_HOME=#{@parsed[:impala_home]}
+export LOG_DIR=#{@parsed[:log_dir]}")
+end
+run "chmod +x #{@parsed[:impala_home]}/impala/bin/impala-launcher"
+
+def configServiceIC
+	icConfig = JSON.parse(File.read('/etc/instance-controller/logs.json'))
+	impalad = {
+      	"delayPush" => "true",
+      	"s3Path" => "node/$instance-id/apps/impala/$0",
+      	"fileGlob" => "#{@parsed[:log_dir]}/(.*)"
+    }
+
+    icConfig['logFileTypes'][1]['logFilePatterns'] << impalad
+	return icConfig
+end
+
+def configHiveSite(clusterMetaData,parsed)
+	config = "<?xml version=\"1.0\"?>
+<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>
+
+<configuration>
+	<property>
+		<name>hive.metastore.uris</name>
+		<value>thrift://#{clusterMetaData['masterPrivateDnsName']}:#{parsed[:HiveMetaStorePort]}</value>
+	</property>
+	<property>
+		<name>hive.metastore.client.socket.timeout</name>
+		<value>3600</value>
+		<description>MetaStore Client socket timeout in seconds</description>
+	</property>
+</configuration>"
+
+	return config
+end
+
+def configServiceNannyMaster
+	snConfig = []
+
+	impalad = {
+		"name" => "impalad",
+    	"type" => "process",
+    	"pid-file" => "#{@parsed[:log_dir]}/impalad.pid",
+    	"start" => "#{@parsed[:impala_home]}/impala/bin/impala-launcher start-impalad",
+    	"stop" => "#{@parsed[:impala_home]}/impala/bin/impala-launcher stop-impalad",
+   		"pattern" => "impalad",
+   		"depends" => ["catalogd"]
+	}
+
+	catalogd = {
+		"name" => "catalogd",
+    	"type" => "process",
+    	"pid-file" => "#{@parsed[:log_dir]}/catalogd.pid",
+    	"start" => "#{@parsed[:impala_home]}/impala/bin/impala-launcher start-catalogd",
+    	"stop" => "#{@parsed[:impala_home]}/impala/bin/impala-launcher stop-catalogd",
+   		"pattern" => "catalogd",
+   		"depends" => ["statestored"]
+	}
+
+	statestored = {
+		"name" => "statestored",
+    	"type" => "process",
+    	"pid-file" => "#{@parsed[:log_dir]}/statestored.pid",
+    	"start" => "#{@parsed[:impala_home]}/impala/bin/impala-launcher start-statestored",
+    	"stop" => "#{@parsed[:impala_home]}/impala/bin/impala-launcher stop-statestored",
+   		"pattern" => "statestored"
+	}
+
+	snConfig << impalad
+	snConfig << catalogd
+	snConfig << statestored
+
+	return snConfig
+end
+
+def configServiceNannySlave
+	snConfig = []
+
+	impalad = {
+		"name" => "impalad",
+    	"type" => "process",
+    	"pid-file" => "#{@parsed[:log_dir]}/impalad.pid",
+    	"start" => "#{@parsed[:impala_home]}/impala/bin/impala-launcher start-impalad",
+    	"stop" => "#{@parsed[:impala_home]}/impala/bin/impala-launcher stop-impalad",
+   		"pattern" => "impalad"
+	}
+
+	snConfig << impalad
+	return snConfig
+end
+
+open("#{@parsed[:impala_home]}/impala/conf/impala.conf", 'w') do |f|
+  	f.puts(setImpalaConfig(clusterMetaData,@parsed))
+end
+
+
+
+#Copy the hdfs-site and core-site.xml files over to the Impala Config dir.
+puts "Copying Hadoop XML files to Impala Conf Dir"
+run "cp /home/hadoop/conf/core-site.xml #{@parsed[:impala_home]}/impala/conf/"
+run "cp /home/hadoop/conf/hdfs-site.xml #{@parsed[:impala_home]}/impala/conf/"
+
+#Set Hive-Site.xml
+open("#{@parsed[:impala_home]}/impala/conf/hive-site.xml", 'w') do |f|
+  	f.puts(configHiveSite(clusterMetaData,@parsed))
+end
+
+=begin
+#Start Impala Services
+if clusterMetaData['isMaster'] == true
+	run "#{@parsed[:impala_home]}/impala/bin/impala-launcher start-statestored"
+	run "#{@parsed[:impala_home]}/impala/bin/impala-launcher start-catalogd"
+	run "sleep 60"
+end
+
+run "#{@parsed[:impala_home]}/impala/bin/impala-launcher start-impalad"
+=end
+
+#Set IC Settings
+conf = JSON.generate(configServiceIC)
+open("/tmp/ic-logs.json", 'w') do |f|
+  	f.puts(conf)
+end
+sudo "cp /tmp/ic-logs.json /etc/instance-controller/logs.json"
+
+#Set Service-Nanny
+
+if clusterMetaData['isMaster'] == true
+	conf = JSON.generate(configServiceNannyMaster)
+else
+	conf = JSON.generate(configServiceNannySlave)
+end
+open("/tmp/sn-impala.conf", 'w') do |f|
+  	f.puts(conf)
+end
+sudo "cp /tmp/sn-impala.conf /etc/service-nanny/impala.conf"
+
+#Restart IC and SN
+def reloadServiceNanny
+  puts "restart service-nanny"
+  if File.exists?('/mnt/var/run/service-nanny/service-nanny.pid')
+    sudo '/etc/init.d/service-nanny restart'
+  else
+    sudo '/etc/init.d/service-nanny start'
+  end
+end
+reloadServiceNanny
+
+puts "Impala Install Finished"
+exit 0
+
