@@ -1,6 +1,6 @@
 #Config file is a tab-delimited file with these expected fields -
 # field1 - EMR AMI version (may be a, a.b or a.b.c format or 'default', default will be used if exact match cannot be found)
-# field2 - Spark build version (the REQUSTED_VERSION is matched against this field, if not specified it will look for the term 'default', default will be used if exact match cannot be found)
+# field2 - Spark build version (the REQUESTED_VERSION is matched against this field, if not specified it will look for the term 'default', default will be used if exact match cannot be found)
 # field3 - (optional) shell program to use to execute the install script, defaults to python
 # field4 - s3 location of a specific install script for this AMI and Spark version (is ran with environment variables S3SparkInstallPath, SparkBuild and Ec2Region)
 # field5 - s3 path to files that will be used for Spark binaries, how this field is used is up to the install script, sets enviroment variable 'SparkS3InstallPath'
