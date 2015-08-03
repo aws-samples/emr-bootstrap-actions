@@ -1,7 +1,10 @@
 Latest Presto With Java 1.8
 ==========================
 This Bootstrap Action will install Java 1.8 and install and configure Presto to work with EMR.  
-You can specify a version of presto supported by the BA, or specify your own compiled version.
+You can specify a version of presto supported by the BA, or specify your own compiled version.  
+
+Please note that this Bootstrap Action does not yet support the EMR AMI 4.0.0.  
+Changes to the Bootstrap Action to make it compatible will be released soon.
 
 ###Bootstrap Location
 s3://support.elasticmapreduce/bootstrap-actions/presto/runnable/install-presto
@@ -33,7 +36,7 @@ Usage: presto-install [OPTIONS]
 
 ###Requirements
 This BA requires that you also install Hive 13 on your cluster as it uses Hive as the default catalog.  
-Only tested against AMI 3.3.2 >
+Only tested against AMI 3.3.2 > < AMI 4.0.0
 
 ###Changes
 - 13/07/2015 : Updated default install version to 0.110
