@@ -269,7 +269,7 @@ def configServiceNanny
     	"pid-file" => "/mnt/var/log/presto/var/run/launcher.pid",
     	"start" => "#{@presto_home}/bin/launcher start",
     	"stop" => "#{@presto_home}/bin/launcher stop",
-   		"pattern" => "instance-controller"
+   		"pattern" => "presto"
 	}
 
 	snConfig << presto
