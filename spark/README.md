@@ -50,6 +50,8 @@ Default is Spark 1.3.1 (1.3.1.e) with EMR AMI 3.5.x  to 3.8.0 *Beginning with EM
 
 Spark 1.4.0 (1.4.0.b) is available with EMR AMI 3.8.x when explicitly requested with `-v 1.4.0.b`.
 
+*All native support for Spark on EMR and subsequent versions (for example, Spark 1.4, 1.5, etc) can be found in the latest releases of EMR without the need for this 3rd party style installation.*
+
 
 See [VersionInformation.md](VersionInformation.md) for detailed Spark version information and previous versions.
 

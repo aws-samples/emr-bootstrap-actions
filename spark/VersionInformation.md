@@ -1,7 +1,7 @@
 Spark Versions and Builds Available 
 ===================================
 
-**IMPORTANT!! Beginning with EMR AMI 3.8, Spark is available as a native application in EMR.  Please see [EMR's Spark on EMR page](http://aws.amazon.com/elasticmapreduce/details/spark/). Please refer to the EMR documentation for instructions on configuring and using the native Spark.**
+**IMPORTANT!! Beginning with EMR AMI 3.8, Spark is available as a native application in EMR.  Please see [EMR's Spark on EMR page](http://aws.amazon.com/elasticmapreduce/details/spark/). Please refer to the EMR documentation for instructions on configuring and using the native Spark.  The use of this 3rd party style installation is out of date and is surpased by the native Spark versions available on EMR.**
 
 
 For installation and examples see  [README.md](README.md).
@@ -56,6 +56,7 @@ To request a specific Spark version build use "-v" to request a specific build v
  * *Spark 1.3.1.e (Includes SPARK-6352 for Parquet and SparkSQL use of predefined output committer)* [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.3.1.e)
  * Spark 1.4.0.a (Initial build of Spark's 1.4.0 release including SPARK-8329) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.4.0.a)
  * Spark 1.4.0.b (Includes sparkR) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.4.0.b)
+ * Spark 1.4.1.a (Includes sparkR) [(Build source for reference)](https://github.com/christopherbozeman/spark/tree/bozemanc-v1.4.1.a)
 
 #### Experimental versions available (designed to be ran with latest AMI available at time of build)
 * branch-1.1 ( "-v 1.1 -b \<buildId\>")
