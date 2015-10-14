@@ -425,8 +425,4 @@ def reloadServiceNanny
   end
 end
 
-installPresto
-writePrestoFilesForServiceNanny
-s3LogJsonUpdate
-reloadServiceNanny
-cleanGemRc
+installPresto && writePrestoFilesForServiceNanny && s3LogJsonUpdate && reloadServiceNanny && cleanGemRc
