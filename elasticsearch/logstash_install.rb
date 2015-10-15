@@ -16,7 +16,7 @@ end
 @target_dir = "/home/hadoop/logstash/"
 @run_dir = "/home/hadoop/logstash/"
 @log_dir = "/home/hadoop/logstash/"
-@logstash_version = "1.4.2"
+@logstash_version = "1.5.3"
 
 
 def install_logstash(target_dir, run_dir, log_dir, logstash_version)
