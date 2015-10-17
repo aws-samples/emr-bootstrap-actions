@@ -11,7 +11,7 @@ import shutil
 # Gather environment info
 # expects to find SparkS3InstallPath defining path to tgz for install
 # expects the basename without extension of path to match the directory name give, for example s3://support.elasticmapreduce/spark/v1.2.0/spark-1.2.0.a.tgz with basename of 
-#  spark-1.2.0.a.tgz will expand into direcotry structure of spark-1.2.0.a/
+#  spark-1.2.0.a.tgz will expand into directory structure of spark-1.2.0.a/
 SparkS3InstallPath = os.environ['SparkS3InstallPath']
 ScalaS3Location = os.environ['ScalaS3Location']
 Ec2Region = os.environ['Ec2Region']
