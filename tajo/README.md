@@ -65,7 +65,7 @@ $ aws emr create-cluster \
 	--no-auto-terminate	\
 	--ec2-attributes KeyName=[KEY_PAIR_NAME] \
 	--instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
-	--bootstrap-action Name="Install tajo",Path=s3://beta.elasticmapreduce/bootstrap-actions/tajo/emr-3.x/install-tajo.sh
+	--bootstrap-action Name="Install tajo",Path=s3://beta.elasticmapreduce/bootstrap-actions/tajo/emr-3.x/install-tajo.sh,Args=["-t","s3://[your_bucket]/tajo-0.11.0.tar.gz","-c","s3://[your_bucket]/conf"]
 ```
 2) EMR-4.x
 ```bash
@@ -75,7 +75,7 @@ $ aws emr create-cluster \
 	--no-auto-terminate	\
 	--ec2-attributes KeyName=[KEY_PAIR_NAME] \
 	--instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m3.xlarge InstanceGroupType=CORE,InstanceCount=1,InstanceType=c3.xlarge \
-	--bootstrap-action Name="Install tajo",Path=s3://beta.elasticmapreduce/bootstrap-actions/tajo/emr-4.x/install-tajo.py \
+	--bootstrap-action Name="Install tajo",Path=s3://beta.elasticmapreduce/bootstrap-actions/tajo/emr-4.x/install-tajo.py,Args=["-t","s3://[your_bucket]/tajo-0.11.0.tar.gz","-c","s3://[your_bucket]/conf"] \
 	--use-default-roles
 ```
 
