@@ -429,7 +429,7 @@ $HADOOP_LZO_HOME/lib"
                             dest='site',
                             required=False,
                             help='''The item of tajo-site.xml(Optional, space delimiter)
-                        ex) --tajo-site.xml "tajo.rootdir=s3://mybucket/tajo tajo.worker.start.cleanup=true tajo.catalog.store.class=org.apache.tajo.catalog.store.MySQLStore''')
+                        ex) --tajo-site.xml "tajo.rootdir=s3://mybucket/tajo/ tajo.worker.start.cleanup=true tajo.catalog.store.class=org.apache.tajo.catalog.store.MySQLStore''')
         parser.add_argument('-T', '--test-home',
                             dest='test_dir',
                             required=False,
@@ -647,6 +647,11 @@ $HADOOP_LZO_HOME/lib"'''
                 d = self.dic_name_value(property)
                 name = d['name']
                 value = d['value']
+                if name == 'tajo.rootdir':
+                    vl = len(value)
+                    if vl > 0 and value[vl-1] != '/' :
+                        print('>> A tail text was expected \'/\' but it appeared wrong as %s.' % (value[vl-1],))
+                        value = value + '/'
                 root = self.xmlUtil.create_node(root, 'property', name, value)
         # Default rootdir is EMR hdfs
         if not self.xmlUtil.get_property_value_from_node(root, 'tajo.rootdir'):

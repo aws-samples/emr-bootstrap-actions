@@ -181,6 +181,13 @@ function set_tajo_conf() {
       do
          name=`echo "$property" | awk -F "\"*=\"*" '{print $1}'`
          value=`echo "$property" | awk -F "\"*=\"*" '{print $2}'`
+         if [ "$name" = "tajo.rootdir" ]; then
+            t="${value:${#value}-1:1}"
+            if [ ${#value} > 0 ] && [ $t != '/' ]; then
+                echo ">> A tail text was expected '/' but it appeared wrong as "$t
+                value=$value'/'
+            fi
+         fi
          echo $(set_property "$name" "$value") >> ${TAJO_HOME}/conf/tajo-site.xml
       done
    fi
