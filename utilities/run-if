@@ -71,8 +71,8 @@ def download_and_execute_command(command, args)
   file_name = command
   execute_name = command
   
-  # If the command starts with s3:// or s3n://
-  if command.match(/^s3[n]{0,1}:\/\/.*/) then
+  # If the command starts with s3://, s3n:// or s3a://
+  if command.match(^s3[n|a]{0,1}:\/\/.*) then
     puts "Attempting to download file '#{command}'"
     system("/home/hadoop/bin/hadoop fs -copyToLocal #{command} ./")
     
