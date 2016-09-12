@@ -1,6 +1,6 @@
 #/bin/bash
 
-# AWS EMR bootstrap script 
+# AWS EMR bootstrap script
 # for installing open-source R (www.r-project.org) with RHadoop packages and RStudio on AWS EMR
 #
 # tested with AMI 3.2.1 (hadoop 2.4.0)
@@ -41,6 +41,7 @@ RSTUDIO=false
 REXAMPLES=false
 USER="rstudio"
 USERPW="rstudio"
+RMR2=false
 PLYRMR=false
 RHDFS=false
 UPDATER=false
@@ -52,6 +53,9 @@ while [ $# -gt 0 ]; do
 			;;
 		--rexamples)
 			REXAMPLES=true
+			;;
+		--rmr2)
+			RMR2=true
 			;;
 		--plyrmr)
 			PLYRMR=true
@@ -101,7 +105,7 @@ if [ "$IS_MASTER" = true -a "$RSTUDIO" = true ]; then
   # please check and update for latest RStudio version
   wget http://download2.rstudio.org/rstudio-server-0.98.983-x86_64.rpm
   sudo yum install --nogpgcheck -y rstudio-server-0.98.983-x86_64.rpm
-  
+
   # change port - 8787 will not work for many companies
   sudo sh -c "echo 'www-port=$RSTUDIOPORT' >> /etc/rstudio/rserver.conf"
   sudo rstudio-server restart
@@ -175,22 +179,23 @@ repos="http://cran.rstudio.com", INSTALL_opts=c('--byte-compile') )
 EOF
 
 
-# install rmr2 package
-rm -rf RHadoop
-mkdir RHadoop
-cd RHadoop
-curl --insecure -L https://raw.github.com/RevolutionAnalytics/rmr2/master/build/rmr2_3.1.2.tar.gz | tar zx
-sudo R CMD INSTALL --byte-compile rmr2
+# install rmr2 package if requested
+if [ "$RHDFS" = true ]; then
+	rm -rf RHadoop
+	mkdir RHadoop
+	cd RHadoop
+	curl --insecure -L https://raw.github.com/RevolutionAnalytics/rmr2/master/build/rmr2_3.1.2.tar.gz | tar zx
+	sudo R CMD INSTALL --byte-compile rmr2
+fi
 
-
-# install rhdfs package
+# install rhdfs package if requested
 if [ "$RHDFS" = true ]; then
 	curl --insecure -L https://raw.github.com/RevolutionAnalytics/rhdfs/master/build/rhdfs_1.0.8.tar.gz | tar zx
 	sudo R CMD INSTALL --byte-compile --no-test-load rhdfs
 fi
 
 
-# install plyrmr package
+# install plyrmr package if requested
 if [ "$PLYRMR" = true ]; then
 	# This takes a lot of time. Please remove if not required.
 	sudo R --no-save << EOF
@@ -198,6 +203,5 @@ install.packages(c('dplyr', 'R.methodsS3', 'Hmisc'),
 repos="http://cran.rstudio.com", INSTALL_opts=c('--byte-compile') )
 EOF
 	curl --insecure -L https://raw.github.com/RevolutionAnalytics/plyrmr/master/build/plyrmr_0.3.0.tar.gz | tar zx
-	sudo R CMD INSTALL --byte-compile plyrmr 
+	sudo R CMD INSTALL --byte-compile plyrmr
 fi
-
