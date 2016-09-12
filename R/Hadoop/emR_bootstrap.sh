@@ -37,6 +37,7 @@ error_msg ()
 }
 
 # get input parameters
+PACKAGES="c('RJSONIO', 'itertools', 'digest', 'Rcpp', 'functional', 'caTools', 'rJava', 'tidyverse')"
 RSTUDIO=false
 REXAMPLES=false
 USER="rstudio"
@@ -70,14 +71,18 @@ while [ $# -gt 0 ]; do
             shift
             RSTUDIOPORT=$1
             ;;
-		--user)
-		   shift
-		   USER=$1
-		   ;;
-   		--user-pw)
-   		   shift
-   		   USERPW=$1
-   		   ;;
+		--packages)
+			 shift
+			 PACKAGES=$1
+			 ;;
+			--user)
+			   shift
+			   USER=$1
+			   ;;
+	   		--user-pw)
+	   		   shift
+	   		   USERPW=$1
+	   		   ;;
 		-*)
 			# do not exit out, just note failure
 			error_msg "unrecognized option: $1"
@@ -172,7 +177,7 @@ sudo R CMD javareconf
 
 # install required packages
 sudo R --no-save << EOF
-install.packages(c('RJSONIO', 'itertools', 'digest', 'Rcpp', 'functional', 'httr', 'plyr', 'stringr', 'reshape2', 'caTools', 'rJava'),
+install.packages($PACKAGES),
 repos="http://cran.rstudio.com", INSTALL_opts=c('--byte-compile') )
 # here you can add your required packages which should be installed on ALL nodes
 # install.packages(c(''), repos="http://cran.rstudio.com", INSTALL_opts=c('--byte-compile') )
