@@ -102,6 +102,8 @@ sudo yum install R -y
 sudo adduser $USER
 sudo sh -c "echo '$USERPW' | passwd $USER --stdin"
 
+# ensure the rstudio user has write permissions for hadoop scratch space
+sudo usermod -a -G hadoop $USER
 
 # install rstudio
 # only run if master node
