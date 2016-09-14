@@ -95,7 +95,7 @@ while [ $# -gt 0 ]; do
 done
 
 # install latest R version from AWS Repo
-sudo yum update R-base -y
+sudo yum install R -y
 
 # create rstudio user on all machines
 # we need a unix user with home directory and password and hadoop permission
@@ -108,8 +108,13 @@ sudo sh -c "echo '$USERPW' | passwd $USER --stdin"
 if [ "$IS_MASTER" = true -a "$RSTUDIO" = true ]; then
   # install Rstudio server
   # please check and update for latest RStudio version
-  wget http://download2.rstudio.org/rstudio-server-0.98.983-x86_64.rpm
-  sudo yum install --nogpgcheck -y rstudio-server-0.98.983-x86_64.rpm
+
+	# needed on Amazon Linux to make RStudio Server talk to OpenSSL
+	sudo ln -s /lib64/libcrypto.so.10 /lib64/libcrypto.so.6
+	sudo ln -s /usr/lib64/libssl.so.10 /lib64/libssl.so.6
+
+	wget https://s3.amazonaws.com/rstudio-server/rstudio-server-rhel5-0.99.903-x86_64.rpm
+	sudo yum install --nogpgcheck rstudio-server-rhel5-0.99.903-x86_64.rpm
 
   # change port - 8787 will not work for many companies
   sudo sh -c "echo 'www-port=$RSTUDIOPORT' >> /etc/rstudio/rserver.conf"
@@ -177,7 +182,7 @@ sudo R CMD javareconf
 
 # install required packages
 sudo R --no-save << EOF
-install.packages($PACKAGES),
+install.packages($PACKAGES,
 repos="http://cran.rstudio.com", INSTALL_opts=c('--byte-compile') )
 # here you can add your required packages which should be installed on ALL nodes
 # install.packages(c(''), repos="http://cran.rstudio.com", INSTALL_opts=c('--byte-compile') )
