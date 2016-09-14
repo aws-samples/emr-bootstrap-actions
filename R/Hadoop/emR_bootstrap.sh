@@ -37,7 +37,7 @@ error_msg ()
 }
 
 # get input parameters
-PACKAGES="c('RJSONIO', 'itertools', 'digest', 'Rcpp', 'functional', 'caTools', 'rJava', 'tidyverse')"
+PACKAGES="c('RJSONIO', 'itertools', 'digest', 'Rcpp', 'functional', 'caTools', 'rJava', 'tidyverse', 'devtools', 'roxygen2')"
 RSTUDIO=false
 REXAMPLES=false
 USER="rstudio"
