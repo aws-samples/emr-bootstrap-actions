@@ -27,7 +27,7 @@
 IS_MASTER=true
 if [ -f /mnt/var/lib/info/instance.json ]
 then
-	IS_MASTER=`cat /mnt/var/lib/info/instance.json | tr -d '\n ' | sed -n 's|.*\"isMaster\":\([^,]*\).*|\1|p'`
+	IS_MASTER=`cat /mnt/var/lib/info/instance.json | tr -d '{}\n ' | sed -n 's|.*\"isMaster\":\([^,]*\).*|\1|p'`
 fi
 
 # error message
