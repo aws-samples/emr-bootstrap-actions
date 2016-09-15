@@ -164,7 +164,7 @@ echo '
 export HADOOP_HOME=/home/hadoop
 export HADOOP_CMD=/home/hadoop/bin/hadoop
 export HADOOP_STREAMING=/home/hadoop/contrib/streaming/hadoop-streaming.jar
-export JAVA_HOME=/usr/java/latest/jre
+export JAVA_HOME=/usr/lib/jvm/java
 ' >> /etc/profile
 EOF1
 sudo sh -c "source /etc/profile"
