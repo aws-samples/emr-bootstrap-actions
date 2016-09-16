@@ -95,7 +95,7 @@ while [ $# -gt 0 ]; do
 done
 
 # install latest R version from AWS Repo
-sudo yum install R -y
+sudo yum install -y R
 
 # create rstudio user on all machines
 # we need a unix user with home directory and password and hadoop permission
@@ -116,7 +116,7 @@ if [ "$IS_MASTER" = true -a "$RSTUDIO" = true ]; then
 	sudo ln -s /usr/lib64/libssl.so.10 /lib64/libssl.so.6
 
 	wget https://s3.amazonaws.com/rstudio-server/rstudio-server-rhel5-0.99.903-x86_64.rpm
-	sudo yum install --nogpgcheck rstudio-server-rhel5-0.99.903-x86_64.rpm
+	sudo yum install -y --nogpgcheck rstudio-server-rhel5-0.99.903-x86_64.rpm
 
   # change port - 8787 will not work for many companies
   sudo sh -c "echo 'www-port=$RSTUDIOPORT' >> /etc/rstudio/rserver.conf"
