@@ -1,6 +1,6 @@
 #/bin/bash
 
-# AWS EMR bootstrap script 
+# AWS EMR bootstrap script
 # for installing open-source R (www.r-project.org) with RHadoop packages and RStudio on AWS EMR
 #
 # tested with AMI 3.2.1 (hadoop 2.4.0)
@@ -27,7 +27,7 @@
 IS_MASTER=true
 if [ -f /mnt/var/lib/info/instance.json ]
 then
-	IS_MASTER=`cat /mnt/var/lib/info/instance.json | tr -d '\n ' | sed -n 's|.*\"isMaster\":\([^,]*\).*|\1|p'`
+	IS_MASTER=`cat /mnt/var/lib/info/instance.json | tr -d '{}\n ' | sed -n 's|.*\"isMaster\":\([^,]*\).*|\1|p'`
 fi
 
 # error message
@@ -37,10 +37,12 @@ error_msg ()
 }
 
 # get input parameters
+PACKAGES="c('RJSONIO', 'itertools', 'digest', 'Rcpp', 'functional', 'caTools', 'rJava', 'tidyverse', 'devtools', 'roxygen2')"
 RSTUDIO=false
 REXAMPLES=false
 USER="rstudio"
 USERPW="rstudio"
+RMR2=false
 PLYRMR=false
 RHDFS=false
 UPDATER=false
@@ -52,6 +54,9 @@ while [ $# -gt 0 ]; do
 			;;
 		--rexamples)
 			REXAMPLES=true
+			;;
+		--rmr2)
+			RMR2=true
 			;;
 		--plyrmr)
 			PLYRMR=true
@@ -66,14 +71,18 @@ while [ $# -gt 0 ]; do
             shift
             RSTUDIOPORT=$1
             ;;
-		--user)
-		   shift
-		   USER=$1
-		   ;;
-   		--user-pw)
-   		   shift
-   		   USERPW=$1
-   		   ;;
+		--packages)
+			 shift
+			 PACKAGES=$1
+			 ;;
+			--user)
+			   shift
+			   USER=$1
+			   ;;
+	   		--user-pw)
+	   		   shift
+	   		   USERPW=$1
+	   		   ;;
 		-*)
 			# do not exit out, just note failure
 			error_msg "unrecognized option: $1"
@@ -86,22 +95,29 @@ while [ $# -gt 0 ]; do
 done
 
 # install latest R version from AWS Repo
-sudo yum update R-base -y
+sudo yum install -y R
 
 # create rstudio user on all machines
 # we need a unix user with home directory and password and hadoop permission
 sudo adduser $USER
 sudo sh -c "echo '$USERPW' | passwd $USER --stdin"
 
+# ensure the rstudio user has write permissions for hadoop scratch space
+sudo usermod -a -G hadoop $USER
 
 # install rstudio
 # only run if master node
 if [ "$IS_MASTER" = true -a "$RSTUDIO" = true ]; then
   # install Rstudio server
   # please check and update for latest RStudio version
-  wget http://download2.rstudio.org/rstudio-server-0.98.983-x86_64.rpm
-  sudo yum install --nogpgcheck -y rstudio-server-0.98.983-x86_64.rpm
-  
+
+	# needed on Amazon Linux to make RStudio Server talk to OpenSSL
+	sudo ln -s /lib64/libcrypto.so.10 /lib64/libcrypto.so.6
+	sudo ln -s /usr/lib64/libssl.so.10 /lib64/libssl.so.6
+
+	wget https://s3.amazonaws.com/rstudio-server/rstudio-server-rhel5-0.99.903-x86_64.rpm
+	sudo yum install -y --nogpgcheck rstudio-server-rhel5-0.99.903-x86_64.rpm
+
   # change port - 8787 will not work for many companies
   sudo sh -c "echo 'www-port=$RSTUDIOPORT' >> /etc/rstudio/rserver.conf"
   sudo rstudio-server restart
@@ -148,7 +164,7 @@ echo '
 export HADOOP_HOME=/home/hadoop
 export HADOOP_CMD=/home/hadoop/bin/hadoop
 export HADOOP_STREAMING=/home/hadoop/contrib/streaming/hadoop-streaming.jar
-export JAVA_HOME=/usr/java/latest/jre
+export JAVA_HOME=/usr/lib/jvm/java
 ' >> /etc/profile
 EOF1
 sudo sh -c "source /etc/profile"
@@ -168,29 +184,30 @@ sudo R CMD javareconf
 
 # install required packages
 sudo R --no-save << EOF
-install.packages(c('RJSONIO', 'itertools', 'digest', 'Rcpp', 'functional', 'httr', 'plyr', 'stringr', 'reshape2', 'caTools', 'rJava'),
+install.packages($PACKAGES,
 repos="http://cran.rstudio.com", INSTALL_opts=c('--byte-compile') )
 # here you can add your required packages which should be installed on ALL nodes
 # install.packages(c(''), repos="http://cran.rstudio.com", INSTALL_opts=c('--byte-compile') )
 EOF
 
 
-# install rmr2 package
-rm -rf RHadoop
-mkdir RHadoop
-cd RHadoop
-curl --insecure -L https://raw.github.com/RevolutionAnalytics/rmr2/master/build/rmr2_3.1.2.tar.gz | tar zx
-sudo R CMD INSTALL --byte-compile rmr2
+# install rmr2 package if requested
+if [ "$RHDFS" = true ]; then
+	rm -rf RHadoop
+	mkdir RHadoop
+	cd RHadoop
+	curl --insecure -L https://raw.github.com/RevolutionAnalytics/rmr2/master/build/rmr2_3.1.2.tar.gz | tar zx
+	sudo R CMD INSTALL --byte-compile rmr2
+fi
 
-
-# install rhdfs package
+# install rhdfs package if requested
 if [ "$RHDFS" = true ]; then
 	curl --insecure -L https://raw.github.com/RevolutionAnalytics/rhdfs/master/build/rhdfs_1.0.8.tar.gz | tar zx
 	sudo R CMD INSTALL --byte-compile --no-test-load rhdfs
 fi
 
 
-# install plyrmr package
+# install plyrmr package if requested
 if [ "$PLYRMR" = true ]; then
 	# This takes a lot of time. Please remove if not required.
 	sudo R --no-save << EOF
@@ -198,6 +215,5 @@ install.packages(c('dplyr', 'R.methodsS3', 'Hmisc'),
 repos="http://cran.rstudio.com", INSTALL_opts=c('--byte-compile') )
 EOF
 	curl --insecure -L https://raw.github.com/RevolutionAnalytics/plyrmr/master/build/plyrmr_0.3.0.tar.gz | tar zx
-	sudo R CMD INSTALL --byte-compile plyrmr 
+	sudo R CMD INSTALL --byte-compile plyrmr
 fi
-
