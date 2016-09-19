@@ -5,6 +5,7 @@ useful configurations in the form of [grains](https://docs.saltstack.com/en/2015
 
 
 ## Usage ##
+
 There are basically three modes. If no argument given, **-I** is assumed.
 
      MODES:
@@ -34,6 +35,7 @@ There are basically three modes. If no argument given, **-I** is assumed.
 
 
 ## SaltStack on EMR: remote command execution cheatsheet ##
+
  __NOTE:__ all the commands will run on the minions as root. The commands need to be executed from a salt master, this would be:
 
   - Independent mode: EMR master node.
@@ -50,6 +52,7 @@ Example:
 
 We can leverage the predefined configuration via _grains_ and _nodegroups_.
 
+
 ### Examples using nodegroups ###
 
 - Execute command (for example, __whoami__) on core nodes:
@@ -64,6 +67,7 @@ We can leverage the predefined configuration via _grains_ and _nodegroups_.
 
         sudo cp /path/to/myfile /srv/salt/
         sudo salt -N slave cp.get_file salt://myfile /path/to/myfile makedirs=True
+
 
 ### Examples using grains ###
 
@@ -84,7 +88,9 @@ We can leverage the predefined configuration via _grains_ and _nodegroups_.
 
             sudo salt -G 'emr:job_flow_id:j-FFFFFFFFFFFFF' cmd.run myscript
 
+
 ## Grains and nodegroups provided by this Bootstrap action ##
+
 Each instance has its grains, they are intended to be static (or semi-static) data that gives information about the underlying system.
 
     emr:
@@ -108,6 +114,7 @@ The nodegroups are defined based on grains rules:
 
 
 ## Brief introduction to SaltStack ##
+
 [SaltStack](https://docs.saltstack.com/en/2015.5/) is an open source tool for automation and infrastructure management (such as Chef or Puppet). It started as a remote execution engine, it's based on ZeroMQ.
 
 What's the benefit of this? Among others:
