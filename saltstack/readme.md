@@ -3,14 +3,6 @@ Install and configure SaltStack
 This Bootstrap Action will install and configure [SaltStack](https://docs.saltstack.com/en/2015.5/) on the EMR nodes. It will add some
 useful configurations in the form of [grains](https://docs.saltstack.com/en/2015.5/topics/targeting/grains.html) (like 'Facts' in other simliar software) and [nodegroups](https://docs.saltstack.com/en/2015.5/topics/targeting/nodegroups.html).
 
-## Bootstrap Location ##
-* For us-east-1:
-
-s3://awssupportdatasvcs.com/bootstrap-actions/saltstack/salt-setup.sh
-
-* Rest of regions:
-
-s3://<region>.awssupportdatasvcs.com/bootstrap-actions/saltstack/salt-setup.sh
 
 ## Usage ##
 There are basically three modes. If no argument given, **-I** is assumed.
@@ -135,8 +127,3 @@ The bootstrap also configures some SaltStack [grains](https://docs.saltstack.com
 
 ## Tested releases ##
 Tested on EMR AMI 3.11 and releases 4.7.X and 5.0.0. It should work on any 4.X, 5.X and probably on most 3.X.
-
-## Latest revision ##
-2016-09-14
-
-On latest EMR version (5.0.0) it's installing SaltStack version 2015.05.10.
