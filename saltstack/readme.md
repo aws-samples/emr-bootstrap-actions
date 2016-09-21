@@ -113,6 +113,11 @@ The nodegroups are defined based on grains rules:
       slave: 'G@emr:instance_role:Core or G@emr:instance_role:Task'
 
 
+## Known issues ##
+
+When running in syndicated mode, sometimes the minions fail to unregister from the master of masters when they are shutdown (such as after a resize of a instance group). Most people would probably use the default mode which doesn't exhibit this problem. The script 'salt_clean.sh' can be run in the master of masters (as root user) to clean the "zombie" unregistered minions.
+
+
 ## Brief introduction to SaltStack ##
 
 [SaltStack](https://docs.saltstack.com/en/2015.5/) is an open source tool for automation and infrastructure management (such as Chef or Puppet). It started as a remote execution engine, it's based on ZeroMQ.
