@@ -1,0 +1,40 @@
+#!/bin/bash -ex
+
+if grep isMaster /mnt/var/lib/info/instance.json | grep true; then
+    # Setup virtualenv
+    mkdir -p /home/hadoop/ipython
+    cd /home/hadoop/ipython
+    sudo pip install virtualenv
+    /usr/local/bin/virtualenv -p /usr/bin/python2.7 ENV
+    source ENV/bin/activate
+
+    # Install IPython
+    pip install "ipython[notebook]==3.2"
+    pip install numpy matplotlib
+
+    # Create PySpark profile for IPython
+    ipython profile create pyspark
+
+    cat <<'EOF' > /home/hadoop/.ipython/profile_pyspark/ipython_notebook_config.py
+c = get_config()
+c.NotebookApp.ip = '*'
+c.NotebookApp.open_browser = False
+c.NotebookApp.port = 8888
+EOF
+
+    cat <<'EOF' > /home/hadoop/.ipython/profile_pyspark/startup/pyspark-setup.py
+import os
+import sys
+spark_home = os.environ.get('SPARK_HOME', None)
+if not spark_home:
+    raise ValueError('SPARK_HOME environment variable is not set')
+sys.path.insert(0, os.path.join(spark_home, 'python'))
+sys.path.insert(0, os.path.join(spark_home, 'python/lib/py4j-0.8.2.1-src.zip'))
+execfile(os.path.join(spark_home, 'python/pyspark/shell.py'))
+EOF
+    export SPARK_HOME=/usr/lib/spark
+    export PYSPARK_SUBMIT_ARGS=pyspark-shell
+    echo "SPARK_HOME=$SPARK_HOME"
+    echo "PYSPARK_SUBMIT_ARGS=$PYSPARK_SUBMIT_ARGS"
+    ipython notebook --profile=pyspark &> /mnt/var/log/ipython_notebook.log &
+fi
