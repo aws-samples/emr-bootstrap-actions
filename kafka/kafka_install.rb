@@ -71,7 +71,7 @@ end
 @scala_version = "2.11"
 KAFKA_CONF = "#{@target_dir}/config/server.properties"
 
-def install_kafka(target_dir, run_dir, log_dir, kafka_version)
+def install_kafka(target_dir, run_dir, log_dir, kafka_version, scala_version)
   clusterMetaData = getClusterMetaData
   tarball = "kafka_#{scala_version}-#{kafka_version}.tgz"
   run "wget http://ftp.heanet.ie/mirrors/www.apache.org/dist/kafka/#{kafka_version}/#{tarball}"
@@ -99,4 +99,4 @@ def install_kafka(target_dir, run_dir, log_dir, kafka_version)
   s3LogJsonUpdate(log_dir)
 end
 
-install_kafka(@target_dir, @run_dir, @log_dir, @kafka_version)
+install_kafka(@target_dir, @run_dir, @log_dir, @kafka_version, @scala_version)
