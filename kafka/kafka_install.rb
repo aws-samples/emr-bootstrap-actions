@@ -29,7 +29,7 @@ def getClusterMetaData
   metaData['instanceType'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/instance-type/'))
   metaData['ip'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/local-ipv4/'))
   metaData['region'] =  Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/placement/availability-zone'))
-  metaData['region'] =  metaData['region'][0...-1] 
+  metaData['region'] =  metaData['region'][0...-1]
   metaData['masterPrivateDnsName'] = jobFlow['masterPrivateDnsName']
   metaData['cluster_Name'] = jobFlow['jobFlowId']
   metaData['isMaster'] = userData['isMaster']
@@ -67,15 +67,16 @@ end
 @target_dir = "/home/hadoop/kafka"
 @run_dir = "/mnt/var/run/kafka"
 @log_dir = "/mnt/var/log/kafka"
-@kafka_version = "0.8.2.1"
+@kafka_version = "0.10.1.0"
+@scala_version = "2.11"
 KAFKA_CONF = "#{@target_dir}/config/server.properties"
 
 def install_kafka(target_dir, run_dir, log_dir, kafka_version)
   clusterMetaData = getClusterMetaData
-  tarball = "kafka_2.9.1-#{kafka_version}.tgz"
+  tarball = "kafka_#{scala_version}-#{kafka_version}.tgz"
   run "wget http://ftp.heanet.ie/mirrors/www.apache.org/dist/kafka/#{kafka_version}/#{tarball}"
   run("tar xvf #{tarball}")
-  run("mv kafka_2.9.1-#{kafka_version} #{target_dir}")
+  run("mv kafka_#{scala_version}-#{kafka_version} #{target_dir}")
   run("rm #{tarball}")
   # setting zookeeper node fqdn
   run("sudo perl -pi -e 's/zookeeper.connect=localhost/zookeeper.connect=#{clusterMetaData['masterPrivateDnsName']}/g' #{KAFKA_CONF}")
@@ -88,14 +89,13 @@ def install_kafka(target_dir, run_dir, log_dir, kafka_version)
   sudo "mkdir -p #{run_dir}"
 
   if clusterMetaData['isMaster'] == true then
-     run("#{target_dir}/bin/zookeeper-server-start.sh #{target_dir}/config/zookeeper.properties &")
      run("#{target_dir}/bin/kafka-server-start.sh #{target_dir}/config/server.properties &")
   else
      randInt=`echo $RANDOM`
      run("sudo perl -pi -e 's/broker.id=0/broker.id=#{randInt}/g' #{KAFKA_CONF}")
      run("#{target_dir}/bin/kafka-server-start.sh #{target_dir}/config/server.properties &")
   end
-  
+
   s3LogJsonUpdate(log_dir)
 end
 
