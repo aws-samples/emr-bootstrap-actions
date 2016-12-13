@@ -78,6 +78,7 @@ def create_and_link_script(kafka_script)
   end
   sudo "mv #{tmp_script} /etc/rc.d/init.d/kafka"
   sudo "chmod u+x /etc/rc.d/init.d/kafka"
+  sudo "chown root:root /etc/rc.d/init.d/kafka"
   sudo "ln -s /etc/rc.d/init.d/kafka /etc/rc.d/rc3.d/S99kafka"
 end
 
@@ -131,6 +132,7 @@ case "$1" in
 
   start)
     echo -n "Starting Kafka:"
+    /sbin/runuser -s /bin/sh $KAFKA_USER -c "mkdir -p $LOG_DIR"
     /sbin/runuser -s /bin/sh $KAFKA_USER -c "nohup $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties > $LOG_DIR/server.out 2> $LOG_DIR/server.err &"
     echo " done."
     exit 0
