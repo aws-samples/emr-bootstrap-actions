@@ -39,23 +39,23 @@ def getClusterMetaData
 end
 
 #update /etc/instance-controller/logs.json for uploading kafka logs to s3
-def s3LogJsonUpdate(kafka_log_dir)
+def s3LogJsonUpdate(target_dir, kafka_log_dir)
   println "kafka log dir : #{kafka_log_dir}"
-  logs_json_path = "/etc/instance-controller/logs.json"
+  logs_json_path = "/etc/logpusher/kafka.config"
   println "Updating #{logs_json_path}"
-  json_obj=JSON.parse(File.read("#{logs_json_path}"));
-  sections = json_obj["logFileTypes"]
-  sections.each { |section|
-    if section['typeName'] == 'SYSTEM_LOG' then
-      user_log = section['logFilePatterns']
-      user_log << {
-          "fileGlob" => "#{kafka_log_dir}/var/log/(.*)",
-          "s3Path" => "node/$instance-id/apps/kafka/$0",
-          "delayPush" => "true"
-      }
-      break
-    end
-  }
+  json_obj = {"#{kafka_log_dir}" => {
+                "includes" =>  [ "(.*)" ],
+                "s3Path" => "node/$instance-id/applications/kafka/$0",
+                "retentionPeriod" => "2d",
+                "logType" => [ "USER_LOG", "SYSTEM_LOG" ]
+              },
+              "#{target_dir}/logs" => {
+                "includes" =>  [ "(.*)" ],
+                "s3Path" => "node/$instance-id/applications/kafka_logs/$0",
+                "retentionPeriod" => "2d",
+                "logType" => [ "USER_LOG", "SYSTEM_LOG" ]
+              }
+             }
   new_json=JSON.pretty_generate(json_obj)
   File.open('/tmp/logs.json','w') do |file_w|
     file_w.write("#{new_json}")
@@ -96,7 +96,7 @@ def install_kafka(target_dir, run_dir, log_dir, kafka_version, scala_version)
      run("#{target_dir}/bin/kafka-server-start.sh #{target_dir}/config/server.properties &")
   end
 
-  s3LogJsonUpdate(log_dir)
+  s3LogJsonUpdate(target_dir,log_dir)
 end
 
 install_kafka(@target_dir, @run_dir, @log_dir, @kafka_version, @scala_version)
