@@ -1,0 +1,167 @@
+#!/usr/bin/ruby
+require 'net/http'
+require 'json'
+require 'optparse'
+
+def parseOptions
+	config_options = {
+		:livy_home => "/usr/lib/livy",
+		:cli => true,
+		:log_dir => "/mnt/var/log/livy",
+		:binary => "s3://ifc-jeffers/livy.tar.gz"
+	}
+
+	opt_parser = OptionParser.new do |opt|
+    	opt.banner = "Usage: livy-install [OPTIONS]"
+
+   		opt.on("-d",'--home-dir [ Home Directory ]',
+	           "Ex : /home/hadoop/ )") do |livy_home|
+	      		config_options[:livy_home] = livy_home
+	    end
+
+	    opt.on("-l",'--log-dir [ Log Directory ]',
+	           "Ex : /home/hadoop/ )") do |log_dir|
+	      		config_options[:log_dir] = log_dir
+	    end
+
+	end
+	opt_parser.parse!
+	return config_options
+end
+
+@parsed = parseOptions
+puts "Installing Livy 0.3.0"
+
+def run(cmd)
+  if ! system(cmd) then
+    raise "Command failed: #{cmd}"
+  end
+end
+
+def sudo(cmd)
+  run("sudo #{cmd}")
+end
+
+def getClusterMetaData
+	metaData = {}
+	jobFlow = JSON.parse(File.read('/mnt/var/lib/info/job-flow.json'))
+	userData = JSON.parse(Net::HTTP.get(URI('http://169.254.169.254/latest/user-data/')))
+
+	#Determine if Instance Has IAM Roles
+	req = Net::HTTP.get_response(URI('http://169.254.169.254/latest/meta-data/iam/security-credentials/'))
+	metaData['roles'] = (req.code.to_i == 200) ? true : false
+
+	metaData['instanceId'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/instance-id/'))
+	metaData['instanceType'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/instance-type/'))
+	metaData['masterPrivateDnsName'] = jobFlow['masterPrivateDnsName']
+	metaData['isMaster'] = userData['isMaster']
+	metaData['puublicHostname'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/public-hostname'))
+
+	return metaData
+end
+
+clusterMetaData = getClusterMetaData
+
+
+def setLivyConfig(metaData,parsed)
+	config = []
+	config << "livy.spark.deployMode = cluster"
+	config << "livy.spark.master = yarn"
+	config << "livy.rsc.rpc.server.address = #{metaData['puublicHostname']}"
+
+	return config.join("\n")
+end
+
+
+puts "Downloading the Binary Package"
+run "mkdir -p /mnt/tmp/"
+run "sudo mkdir -p #{@parsed[:livy_home]}"
+run "sudo chown -R hadoop:hadoop #{@parsed[:livy_home]}"
+run "hdfs dfs -get #{@parsed[:binary]} /mnt/tmp/livy-binary.tar.gz"
+run "tar -xvf /mnt/tmp/livy-binary.tar.gz -C #{@parsed[:livy_home]}"
+
+#Make the LogDir
+sudo "mkdir -p #{@parsed[:log_dir]}"
+sudo "chown -R hadoop:hadoop #{@parsed[:log_dir]}"
+
+def configLivyEnv(clusterMetaData,parsed)
+	config = "
+    export SPARK_HOME=/usr/lib/spark
+    export HADOOP_CONF_DIR=/etc/hadoop/conf
+	export LIVY_LOG_DIR=#{@parsed[:log_dir]}
+	export LIVY_PID_DIR=#{@parsed[:log_dir]}
+    "
+	return config
+end
+
+#Set livy-env.sh
+open("#{@parsed[:livy_home]}/conf/livy-env.sh", 'w') do |f|
+  	f.puts(configLivyEnv(clusterMetaData,@parsed))
+end
+
+def configServiceIC
+	icConfig = JSON.parse(File.read('/etc/instance-controller/logs.json'))
+	livyd = {
+      	"delayPush" => "true",
+      	"s3Path" => "node/$instance-id/applications/livy/$0",
+      	"fileGlob" => "#{@parsed[:log_dir]}/(.*)"
+    }
+
+    icConfig['logFileTypes'][1]['logFilePatterns'] << livyd
+	return icConfig
+end
+
+
+
+def configServiceNannyMaster
+	snConfig = []
+
+	livyd = {
+		"name" => "livyd",
+    	"type" => "process",
+    	"pid-file" => "#{@parsed[:log_dir]}/livy--server.pid",
+    	"start" => "/etc/init.d/livy start",
+    	"stop" => "/etc/init.d/livy stop",
+   		"pattern" => "livyd"
+	}
+
+	snConfig << livyd
+
+	return snConfig
+end
+
+#Set Livy conf
+open("#{@parsed[:livy_home]}/conf/livy.conf", 'w') do |f|
+  	f.puts(setImpalaConfig(clusterMetaData,@parsed))
+end
+
+#Set IC Settings
+conf = JSON.generate(configServiceIC)
+open("/tmp/ic-logs.json", 'w') do |f|
+  	f.puts(conf)
+end
+sudo "cp /tmp/ic-logs.json /etc g/instance-controller/logs.json"
+
+#Set Service-Nanny
+
+if clusterMetaData['isMaster'] == true
+	conf = JSON.generate(configServiceNannyMaster)
+end
+open("/tmp/sn-livy.conf", 'w') do |f|
+  	f.puts(conf)
+end
+sudo "cp /tmp/sn-livy.conf /etc/service-nanny/livy.conf"
+
+#Restart IC and SN
+def reloadServiceNanny
+  puts "restart service-nanny"
+  if File.exists?('/mnt/var/run/service-nanny/service-nanny.pid')
+    sudo '/etc/init.d/service-nanny restart'
+  else
+    sudo '/etc/init.d/service-nanny start'
+  end
+end
+reloadServiceNanny
+
+puts "Livy Install Finished"
+exit 0
