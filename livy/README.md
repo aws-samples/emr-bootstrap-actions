@@ -4,12 +4,12 @@ This Bootstrap Action provisions your cluster with the latest version of Livy av
 
 ###Bootstrap Location
 
-s3://ifc-jeffers/bootstrap-actions/livy
+s3://elasticmapreduce/bootstrap-actions/livy
 
 
 ###Requirements
 
-- AWS EMR AMI >= 3.11.0
+- AWS EMR RELEASE >= 5.4.0
 
 
 ###Changes
