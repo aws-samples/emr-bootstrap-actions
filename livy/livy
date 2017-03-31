@@ -8,7 +8,7 @@ def parseOptions
 		:livy_home => "/usr/lib/livy",
 		:cli => true,
 		:log_dir => "/mnt/var/log/livy",
-		:binary => "s3://ifc-jeffers/livy.tar.gz"
+		:binary => "http://archive.cloudera.com/beta/livy/livy-server-0.3.0.zip"
 	}
 
 	opt_parser = OptionParser.new do |opt|
@@ -55,19 +55,22 @@ def getClusterMetaData
 	metaData['instanceType'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/instance-type/'))
 	metaData['masterPrivateDnsName'] = jobFlow['masterPrivateDnsName']
 	metaData['isMaster'] = userData['isMaster']
-	metaData['puublicHostname'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/public-hostname'))
+	metaData['publicHostname'] = Net::HTTP.get(URI('http://169.254.169.254/latest/meta-data/public-hostname'))
 
 	return metaData
 end
 
 clusterMetaData = getClusterMetaData
 
+if clusterMetaData['isMaster'] == false
+	exit 0
+end
 
 def setLivyConfig(metaData,parsed)
 	config = []
 	config << "livy.spark.deployMode = cluster"
 	config << "livy.spark.master = yarn"
-	config << "livy.rsc.rpc.server.address = #{metaData['puublicHostname']}"
+	config << "livy.rsc.rpc.server.address = #{metaData['publicHostname']}"
 
 	return config.join("\n")
 end
@@ -77,8 +80,10 @@ puts "Downloading the Binary Package"
 run "mkdir -p /mnt/tmp/"
 run "sudo mkdir -p #{@parsed[:livy_home]}"
 run "sudo chown -R hadoop:hadoop #{@parsed[:livy_home]}"
-run "hdfs dfs -get #{@parsed[:binary]} /mnt/tmp/livy-binary.tar.gz"
-run "tar -xvf /mnt/tmp/livy-binary.tar.gz -C #{@parsed[:livy_home]}"
+run "wget -S -T 10 -t 5 \"#{@parsed[:binary]}\" -O /mnt/tmp/livy-server-0.3.0.zip"
+run "unzip /mnt/tmp/livy-server-0.3.0.zip -d #{@parsed[:livy_home]}"
+run "mv #{@parsed[:livy_home]}/livy-server-0.3.0/* #{@parsed[:livy_home]}/"
+run "sudo chmod gau+x #{@parsed[:livy_home]}/*"
 
 #Make the LogDir
 sudo "mkdir -p #{@parsed[:log_dir]}"
@@ -99,16 +104,19 @@ open("#{@parsed[:livy_home]}/conf/livy-env.sh", 'w') do |f|
   	f.puts(configLivyEnv(clusterMetaData,@parsed))
 end
 
-def configServiceIC
-	icConfig = JSON.parse(File.read('/etc/instance-controller/logs.json'))
-	livyd = {
-      	"delayPush" => "true",
-      	"s3Path" => "node/$instance-id/applications/livy/$0",
-      	"fileGlob" => "#{@parsed[:log_dir]}/(.*)"
-    }
 
-    icConfig['logFileTypes'][1]['logFilePatterns'] << livyd
-	return icConfig
+def configServiceLogPusher
+	livy = {
+  		"/mnt/var/log/livy" : {
+    		"includes" : [ "(.*)" ],
+			"excludes" : [ "(.pid)" ],
+    		"s3Path" : "node/$instance-id/applications/livy/$0",
+    		"retentionPeriod" : "2d",
+    		"logType" : [ "USER_LOG", "SYSTEM_LOG" ]
+  		}
+	}
+
+	return livy
 end
 
 
@@ -116,31 +124,101 @@ end
 def configServiceNannyMaster
 	snConfig = []
 
-	livyd = {
-		"name" => "livyd",
+	livy = {
+		"name" => "livy",
     	"type" => "process",
-    	"pid-file" => "#{@parsed[:log_dir]}/livy--server.pid",
+    	"pid-file" => "#{@parsed[:log_dir]}/livy-hadoop-server.pid",
     	"start" => "/etc/init.d/livy start",
     	"stop" => "/etc/init.d/livy stop",
-   		"pattern" => "livyd"
+   		"pattern" => "livy"
 	}
 
-	snConfig << livyd
+	snConfig << livy
 
 	return snConfig
 end
 
-#Set Livy conf
-open("#{@parsed[:livy_home]}/conf/livy.conf", 'w') do |f|
-  	f.puts(setImpalaConfig(clusterMetaData,@parsed))
+
+def configInitD()
+	config = "
+. /lib/lsb/init-functions
+
+PID_FILE=/mnt/var/log/livy/livy-hadoop-server.pid
+
+function start {
+
+   echo \"(console) $(date '+%Y-%m-%d %H:%M:%S')   listing currently running livys: \" > /dev/console
+   ps -efww | grep -i livy > /dev/console
+   echo \"(console) $(date '+%Y-%m-%d %H:%M:%S')  Displaying last 100 lines of livy logfile: \" > /dev/console
+   tail -n 100 /mnt/var/log/livy/livy--server.log > /dev/console
+
+   mkdir -p `dirname ${PID_FILE}`
+
+   su hadoop -c "/sbin/start-stop-daemon --start \
+       --exec /usr/lib/livy/bin/livy-server start \
+       --pidfile $PID_FILE \
+       --verbose"
+}
+
+function stop {
+   echo \"(console) $(date '+%Y-%m-%d %H:%M:%S') Livy stop called!\" > /dev/console
+   su hadoop -c "/sbin/start-stop-daemon --stop --pidfile $PID_FILE --verbose"
+}
+
+function reload {
+    echo \"(console) $(date '+%Y-%m-%d %H:%M:%S') Livy restart called!\" > /dev/console
+    stop
+    start
+}
+
+function status {
+    if [ -e $PID_FILE ] && ps --pid $(cat $PID_FILE) > /dev/null 2>&1 ; then
+      log_success_msg \"Running\"
+      exit 0
+    else
+      log_warning_msg \"Not Running\"
+      exit 3
+    fi
+}
+
+case $1 in
+    'start' )
+        start
+        ;;
+    'stop' )
+        stop
+        ;;
+    'restart' )
+        stop
+        start
+        ;;
+    'force-reload' )
+        reload
+        ;;
+    'status' )
+        status
+        ;;
+    *)
+        echo \"usage: `basename $0` {start|stop|status}\"
+esac
+
+exit 0
+    "
+	return config
 end
 
-#Set IC Settings
-conf = JSON.generate(configServiceIC)
-open("/tmp/ic-logs.json", 'w') do |f|
+
+#Set Livy conf
+open("#{@parsed[:livy_home]}/conf/livy.conf", 'w') do |f|
+  	f.puts(setLivyConfig(clusterMetaData,@parsed))
+end
+
+#Set Logpusher Settings
+conf = JSON.generate(configServiceLogPusher)
+open("/tmp/livy.config", 'w') do |f|
   	f.puts(conf)
 end
-sudo "cp /tmp/ic-logs.json /etc g/instance-controller/logs.json"
+sudo "cp /tmp/livy.config /etc/logpusher/livy.config"
 
 #Set Service-Nanny
 
@@ -152,6 +230,13 @@ open("/tmp/sn-livy.conf", 'w') do |f|
 end
 sudo "cp /tmp/sn-livy.conf /etc/service-nanny/livy.conf"
 
+#Set init.d
+open("/tmp/initd-livy", 'w') do |f|
+  	f.puts(configInitD())
+end
+sudo "cp /tmp/initd-livy /etc/init.d/livy"
+sudo "chmod gau+x /etc/init.d/livy"
+
 #Restart IC and SN
 def reloadServiceNanny
   puts "restart service-nanny"
@@ -161,7 +246,7 @@ def reloadServiceNanny
     sudo '/etc/init.d/service-nanny start'
   end
 end
-reloadServiceNanny
 
+reloadServiceNanny
 puts "Livy Install Finished"
 exit 0
