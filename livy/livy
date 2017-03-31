@@ -106,7 +106,7 @@ end
 
 
 def configServiceLogPusher
-	livy = {
+	livy = '{
   		"/mnt/var/log/livy" : {
     		"includes" : [ "(.*)" ],
 			"excludes" : [ "(.pid)" ],
@@ -114,7 +114,7 @@ def configServiceLogPusher
     		"retentionPeriod" : "2d",
     		"logType" : [ "USER_LOG", "SYSTEM_LOG" ]
   		}
-	}
+	}'
 
 	return livy
 end
@@ -154,15 +154,15 @@ function start {
 
    mkdir -p `dirname ${PID_FILE}`
 
-   su hadoop -c "/sbin/start-stop-daemon --start \
+   su hadoop -c \"/sbin/start-stop-daemon --start \
        --exec /usr/lib/livy/bin/livy-server start \
        --pidfile $PID_FILE \
-       --verbose"
+       --verbose\"
 }
 
 function stop {
    echo \"(console) $(date '+%Y-%m-%d %H:%M:%S') Livy stop called!\" > /dev/console
-   su hadoop -c "/sbin/start-stop-daemon --stop --pidfile $PID_FILE --verbose"
+   su hadoop -c \"/sbin/start-stop-daemon --stop --pidfile $PID_FILE --verbose\"
 }
 
 function reload {
@@ -214,9 +214,8 @@ open("#{@parsed[:livy_home]}/conf/livy.conf", 'w') do |f|
 end
 
 #Set Logpusher Settings
-conf = JSON.generate(configServiceLogPusher)
 open("/tmp/livy.config", 'w') do |f|
-  	f.puts(conf)
+  	f.puts(configServiceLogPusher)
 end
 sudo "cp /tmp/livy.config /etc/logpusher/livy.config"
 
@@ -240,7 +239,7 @@ sudo "chmod gau+x /etc/init.d/livy"
 #Restart IC and SN
 def reloadServiceNanny
   puts "restart service-nanny"
-  if File.exists?('/mnt/var/run/service-nanny/service-nanny.pid')
+  if File.exists?('/emr/service-nanny/run/service-nanny.pid')
     sudo '/etc/init.d/service-nanny restart'
   else
     sudo '/etc/init.d/service-nanny start'
