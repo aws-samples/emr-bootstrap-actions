@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # AWS EMR bootstrap script 
 # for installing open-source R (www.r-project.org) with RHadoop packages and RStudio on AWS EMR
