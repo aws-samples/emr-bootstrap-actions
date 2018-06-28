@@ -27,6 +27,7 @@ There are basically three modes. If no argument given, **-I** is assumed.
                                 info
       -f <facility>             See man syslog.h for valid facilities. Default:
                                 LOG_LOCAL0
+      -n <Cluster Name>         The name of your EMR Cluster.
 
      FLAGS
       -d                         Enable debug mode

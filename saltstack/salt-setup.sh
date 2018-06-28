@@ -30,6 +30,7 @@ USAGE: ${0} -mode [-options] [-flags]
                             info
   -f <facility>             See man syslog.h for valid facilities. Default:
                             LOG_LOCAL0
+  -n <Cluster Name>         The name of your EMR Cluster
 
  FLAGS
   -d                         Enable debug mode
@@ -47,7 +48,7 @@ write_grain_file() {
   instanceGroupId=$(jq -r '.instanceGroupId' $infodir/instance.json)
   jobFlowId=$(jq -r '.jobFlowId' $infodir/job-flow.json)
   version=$(grep releaseLabel $infodir/job-flow-state.txt | cut -d '"' -f 2)
-  cluster_name=$(aws emr describe-cluster --cluster-id $jobFlowId --output text --query 'Cluster.Name')
+  
 
   if [[ -z "$version" ]]; then
     version=$(grep amiVersion $infodir/job-flow-state.txt | cut -d '"' -f 2)
@@ -204,11 +205,12 @@ minionuser="root"
 syndic=0
 external=0
 
-while getopts ":f:l:E:S:dVIh" optname; do
+while getopts ":f:l:E:S:dVIhn" optname; do
   case $optname in
     d)  set -x ;;
     f)  facility="$OPTARG" ;;
     l)  loglevel="$OPTARG" ;;
+    n)  cluster_name="$OPTARG" ;;
     [eE])  saltmaster="$OPTARG"; external=1 ;;
     [sS])  saltmaster="$OPTARG"; syndic=1 ;;
     [iI])  : ;;
