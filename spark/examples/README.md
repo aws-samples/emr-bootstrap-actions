@@ -3,10 +3,6 @@ Examples Index
 
 # Installation and configuration
 
-- [How to install Spark on EMR](../README.md)
-
-- [Building a custom Spark distribution for EMR](building-spark-for-emr.md)
-
 - [Understanding CLASSPATH and Enviroment Variables with Spark on YARN](understanding-classpath-envvars-yarn.md)
 
 - [Understanding Spark memory configuration on YARN](spark-memory-yarn.md)
