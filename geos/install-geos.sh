@@ -61,6 +61,11 @@ sudo cmake3 --build . --target install
 cd ../../
 rm -rf proj-9.2.1
 
+# We need to let Python know where libproj and libgeos are installed
+echo -e '/usr/local/lib/\n/usr/local/lib64/' | sudo tee -a /etc/ld.so.conf.d/proj-x86_64.conf > /dev/null
+sudo ldconfig
+
 # Now install cartopy
 # The path=$path portion adds /usr/local/bin to the sudo environment path so that cartopy can find geos
-sudo env "PATH=$PATH" pip3 install cartopy
+# shapely==1.8.5 is needed due to https://github.com/SciTools/cartopy/issues/2076
+sudo env "PATH=$PATH" pip3 install shapely==1.8.5 cartopy
