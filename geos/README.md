@@ -40,3 +40,7 @@ aws emr create-cluster \
 ```
 
 The cluster will take about 20 minutes to boot up due to needing to compile several projects from source.
+
+## Docker
+
+Another option is building a Docker container containing the necessary dependencies. 
