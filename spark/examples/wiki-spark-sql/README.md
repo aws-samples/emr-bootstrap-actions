@@ -1,4 +1,4 @@
-# Runnging Wikipedia SparkSQL example on Amazon EMR
+# Running Wikipedia SparkSQL example on Amazon EMR
 The document shows how to run a simple word count example for files sitting on Amazon S3
 
 #Contents
